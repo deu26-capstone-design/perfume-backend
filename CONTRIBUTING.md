@@ -33,3 +33,8 @@ try {
 를 이용하세요. 
 
 PR 전 필수적으로 Build / Test를 진행하세요.
+
+커밋 메세지 관련
+==========================
+
+커밋 메세지는 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) 를 준용합니다. 
