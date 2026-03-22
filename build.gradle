@@ -8,7 +8,7 @@ plugins {
 
 group = 'kim.biryeong'
 version = '0.0.1-SNAPSHOT'
-description = 'demo1'
+description = 'perfume'
 
 java {
     toolchain {
