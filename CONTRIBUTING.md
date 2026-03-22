@@ -16,21 +16,29 @@ feat_user_auth // this is good
 
 문법
 ==========================
-가능한 한 최신 문법을 써 주세요. 예시로,
+프로젝트는 Java 25를 기준으로 작성합니다.
+
+- 가능한 한 Java 25의 안정적인 문법과 표준 API를 우선 사용해 주세요.
+- preview 또는 incubator 기능은 명시적인 합의 없이 도입하지 마세요.
+- 최신 문법 사용보다 가독성과 유지보수성을 우선하세요.
+
+예시로,
 
 ```java
 try{
     doSomething();
 } catch(Exception ignored) {}
 ```
-대신 JAVA-25의
+처럼 의도가 불분명한 형태보다는,
 
 ```java
 try {
     doSomething();
-} catch (Exception _) {}
+} catch (Exception e) {
+    log.warn("Request failed", e);
+}
 ```
-를 이용하세요. 
+처럼 현재 의도가 더 잘 드러나는 형태를 우선해 주세요.
 
 PR 전 필수적으로 Build / Test를 진행하세요.
 
