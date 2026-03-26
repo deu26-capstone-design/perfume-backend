@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: perfume-db
     ports:
-      - "3309:3306"
+      - "3309:3309"
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: perfume_db
