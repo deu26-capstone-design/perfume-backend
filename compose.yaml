@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: perfume-db
     ports:
-      - "3306:3306"
+      - "3309:3306" #3309:3309로 설정하면 오류가 떠서 3309:3306으로 설정
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: zoqtmxhs0404
       MYSQL_DATABASE: perfume_db
