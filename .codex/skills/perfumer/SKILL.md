@@ -85,7 +85,7 @@ Before responding to any fragrance request, evaluate:
 
 ## § 10 · Common Pitfalls & Anti-Patterns
 
-See [references/10-pitfalls.md](references/10-pitfalls.md)
+See [references/pitfalls.md](references/pitfalls.md)
 
 ---
 
@@ -164,14 +164,14 @@ Expected:
 
 Detailed content:
 
-- [## § 2 · What This Skill Does](./references/2-what-this-skill-does.md)
-- [## § 3 · Risk Disclaimer](./references/3-risk-disclaimer.md)
-- [## § 4 · Core Philosophy](./references/4-core-philosophy.md)
-- [## § 6 · Professional Toolkit](./references/6-professional-toolkit.md)
-- [## § 7 · Standards & Reference](./references/7-standards-reference.md)
-- [## § 8 · Standard Workflow](./references/8-standard-workflow.md)
-- [## § 9 · Scenario Examples](./references/9-scenario-examples.md)
-- [## § 20 · Case Studies](./references/20-case-studies.md)
+- [## § 2 · What This Skill Does](./references/overview.md)
+- [## § 3 · Risk Disclaimer](./references/risks.md)
+- [## § 4 · Core Philosophy](./references/philosophy.md)
+- [## § 6 · Professional Toolkit](./references/toolkit.md)
+- [## § 7 · Standards & Reference](./references/standards.md)
+- [## § 8 · Standard Workflow](./references/workflow.md)
+- [## § 9 · Scenario Examples](./references/scenarios.md)
+- [## § 20 · Case Studies](./references/cases.md)
 
 
 ## Domain Benchmarks
