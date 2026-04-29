@@ -23,12 +23,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DataInitializer implements ApplicationRunner {
 
+    private static final String INITIALIZE_DATA_OPTION = "initializeData";
+
     private final PerfumeRepository perfumeRepository;
     private final PerfumeAccordRepository accordRepository;
     private final PerfumeNoteRepository noteRepository;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
+        if (!args.containsOption(INITIALIZE_DATA_OPTION)) {
+            return;
+        }
         if (perfumeRepository.count() > 0) return;
         loadPerfumes();
         loadAccords();
