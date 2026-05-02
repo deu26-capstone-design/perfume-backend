@@ -1,37 +1,52 @@
 package kim.biryeong.perfume.domain;
 
 import jakarta.persistence.*;
+import java.time.LocalDate;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDate;
 
 @Entity
-@Table(name = "users")
-@Getter @Setter
+@Table(
+		name = "users",
+		uniqueConstraints =
+				@UniqueConstraint(
+						name = "uk_users_oauth_provider_id",
+						columnNames = {"oauth_provider", "oauth_provider_id"}))
+@Getter
+@Setter
 public class User {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Integer userId;
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private Integer userId;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String email;
+	@Column(nullable = false, unique = true, length = 100)
+	private String email;
 
-    @Column(nullable = false, length = 255)
-    private String password;
+	@Column(length = 255)
+	private String password;
 
-    @Column(nullable = false, length = 24)
-    private String name;
+	@Column(nullable = false, length = 24)
+	private String name;
 
-    @Column(nullable = false, unique = true, length = 24)
-    private String nickname;
+	@Column(unique = true, length = 24)
+	private String nickname;
 
-    @Column(nullable = false, length = 1)
-    private String gender;
+	@Column(length = 1)
+	private String gender;
 
-    @Column(nullable = false)
-    private LocalDate birthDate;
+	@Column private LocalDate birthDate;
 
-    @Column(nullable = false, length = 15)
-    private String phoneNumber;
+	@Column(length = 15)
+	private String phoneNumber;
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "oauth_provider", length = 24)
+	private OAuthProvider oauthProvider;
+
+	@Column(name = "oauth_provider_id", length = 128)
+	private String oauthProviderId;
+
+	@Column(name = "profile_completed", nullable = false, columnDefinition = "boolean default true")
+	private boolean profileCompleted = true;
 }
