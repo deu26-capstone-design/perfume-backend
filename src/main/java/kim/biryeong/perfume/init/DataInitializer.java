@@ -45,9 +45,8 @@ public class DataInitializer implements ApplicationRunner {
     private Map<Long, Perfume> loadPerfumes() throws Exception {
         List<Perfume> list = new ArrayList<>();
         Map<Long, Perfume> perfumes = new LinkedHashMap<>();
-        try (CSVReader reader = new CSVReaderBuilder(
-                new InputStreamReader(new ClassPathResource("data/perfumes.csv").getInputStream(), StandardCharsets.UTF_8))
-                .withSkipLines(1).build()) {
+        try (InputStreamReader isr = new InputStreamReader(new ClassPathResource("data/perfumes.csv").getInputStream(), StandardCharsets.UTF_8);
+             CSVReader reader = new CSVReaderBuilder(isr).withSkipLines(1).build()) {
             String[] row;
             int rowNumber = 2;
             while ((row = reader.readNext()) != null) {
@@ -74,9 +73,8 @@ public class DataInitializer implements ApplicationRunner {
 
     private void loadAccords(Map<Long, Perfume> perfumes) throws Exception {
         List<PerfumeAccord> list = new ArrayList<>();
-        try (CSVReader reader = new CSVReaderBuilder(
-                new InputStreamReader(new ClassPathResource("data/perfume_accords.csv").getInputStream(), StandardCharsets.UTF_8))
-                .withSkipLines(1).build()) {
+        try (InputStreamReader isr = new InputStreamReader(new ClassPathResource("data/perfume_accords.csv").getInputStream(), StandardCharsets.UTF_8);
+             CSVReader reader = new CSVReaderBuilder(isr).withSkipLines(1).build()) {
             String[] row;
             int rowNumber = 2;
             while ((row = reader.readNext()) != null) {
@@ -96,9 +94,8 @@ public class DataInitializer implements ApplicationRunner {
 
     private void loadNotes(Map<Long, Perfume> perfumes) throws Exception {
         List<PerfumeNote> list = new ArrayList<>();
-        try (CSVReader reader = new CSVReaderBuilder(
-                new InputStreamReader(new ClassPathResource("data/perfume_notes.csv").getInputStream(), StandardCharsets.UTF_8))
-                .withSkipLines(1).build()) {
+        try (InputStreamReader isr = new InputStreamReader(new ClassPathResource("data/perfume_notes.csv").getInputStream(), StandardCharsets.UTF_8);
+             CSVReader reader = new CSVReaderBuilder(isr).withSkipLines(1).build()) {
             String[] row;
             int rowNumber = 2;
             while ((row = reader.readNext()) != null) {
