@@ -3,6 +3,7 @@ package kim.biryeong.perfume.controller;
 import kim.biryeong.perfume.dto.PerfumeDetailResponse;
 import kim.biryeong.perfume.dto.PerfumeListResponse;
 import kim.biryeong.perfume.dto.ReviewListResponse;
+import kim.biryeong.perfume.dto.StatsDto;
 import kim.biryeong.perfume.service.PerfumeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +28,11 @@ public class PerfumeController {
     @GetMapping("/{id}")
     public PerfumeDetailResponse getPerfumeDetail(@PathVariable Long id) {
         return perfumeService.getPerfumeDetail(id);
+    }
+
+    @GetMapping("/{id}/review-summary")
+    public StatsDto getReviewSummary(@PathVariable Long id) {
+        return perfumeService.getReviewSummary(id);
     }
 
     @GetMapping("/{id}/reviews")

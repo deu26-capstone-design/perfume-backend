@@ -3,7 +3,7 @@ package kim.biryeong.perfume.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Getter
@@ -16,5 +16,5 @@ public class ReviewItemDto {
     private List<String> seasons;
     private List<String> scents;
     private String comment;
-    private LocalDateTime createdAt;
+    private LocalDate createdAt;
 }

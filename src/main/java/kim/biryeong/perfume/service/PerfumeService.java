@@ -61,19 +61,26 @@ public class PerfumeService {
         );
 
         List<Review> reviews = reviewRepository.findByPerfumeId(perfume.getId());
-        List<ReviewSeason> seasons = reviewSeasonRepository.findByPerfumeId(perfume.getId());
 
         long reviewCount = reviews.size();
         double rating = reviews.isEmpty() ? 0.0
                 : Math.round(reviews.stream().mapToInt(Review::getSatisfaction).average().orElse(0.0) * 10.0) / 10.0;
 
-        StatsDto stats = buildStats(reviews, seasons, reviewCount);
-
         return new PerfumeDetailResponse(
                 perfume.getId(), perfume.getImageUrl(), perfume.getBrand(), perfume.getName(),
                 perfume.getGender(), perfume.getDescription(),
-                rating, reviewCount, notes, accords, stats
+                rating, reviewCount, notes, accords
         );
+    }
+
+    @Transactional(readOnly = true)
+    public StatsDto getReviewSummary(Long id) {
+        if (!perfumeRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+        List<Review> reviews = reviewRepository.findByPerfumeId(id);
+        List<ReviewSeason> seasons = reviewSeasonRepository.findByPerfumeId(id);
+        return buildStats(reviews, seasons, reviews.size());
     }
 
     @Transactional(readOnly = true)
@@ -89,15 +96,15 @@ public class PerfumeService {
                 .map(r -> r.getUser().getUserId())
                 .collect(Collectors.toList());
 
-        Map<Integer, List<String>> seasonsByUser = reviewSeasonRepository
-                .findByPerfumeIdAndUserIds(perfumeId, userIds).stream()
+        Map<Integer, List<String>> seasonsByUser = userIds.isEmpty() ? Map.of() :
+                reviewSeasonRepository.findByPerfumeIdAndUserIds(perfumeId, userIds).stream()
                 .collect(Collectors.groupingBy(
                         rs -> rs.getUser().getUserId(),
                         Collectors.mapping(ReviewSeason::getSeason, Collectors.toList())
                 ));
 
-        Map<Integer, List<String>> scentsByUser = reviewScentRepository
-                .findByPerfumeIdAndUserIds(perfumeId, userIds).stream()
+        Map<Integer, List<String>> scentsByUser = userIds.isEmpty() ? Map.of() :
+                reviewScentRepository.findByPerfumeIdAndUserIds(perfumeId, userIds).stream()
                 .collect(Collectors.groupingBy(
                         rs -> rs.getUser().getUserId(),
                         Collectors.mapping(ReviewScent::getScentName, Collectors.toList())
@@ -113,7 +120,7 @@ public class PerfumeService {
                     seasonsByUser.getOrDefault(userId, List.of()),
                     scentsByUser.getOrDefault(userId, List.of()),
                     r.getComment(),
-                    r.getCreatedAt()
+                    r.getCreatedAt().toLocalDate()
             );
         }).collect(Collectors.toList());
 
@@ -146,9 +153,15 @@ public class PerfumeService {
                     .forEach((k, v) -> longevityMap.put(k, (int) Math.round(v * 100.0 / longevityCount)));
         }
 
-        seasons.stream()
-                .collect(Collectors.groupingBy(ReviewSeason::getSeason, Collectors.counting()))
-                .forEach((k, v) -> seasonMap.put(k, (int) Math.round(v * 100.0 / reviewCount)));
+        long seasonRespondentCount = seasons.stream()
+                .map(rs -> rs.getUser().getUserId())
+                .distinct()
+                .count();
+        if (seasonRespondentCount > 0) {
+            seasons.stream()
+                    .collect(Collectors.groupingBy(ReviewSeason::getSeason, Collectors.counting()))
+                    .forEach((k, v) -> seasonMap.put(k, (int) Math.round(v * 100.0 / seasonRespondentCount)));
+        }
 
         return new StatsDto(satisfactionMap, longevityMap, seasonMap);
     }

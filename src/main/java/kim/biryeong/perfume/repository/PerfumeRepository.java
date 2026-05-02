@@ -26,7 +26,7 @@ public interface PerfumeRepository extends JpaRepository<Perfume, Long> {
             "AND (:gender IS NULL OR p.gender = :gender) " +
             "AND (:accord IS NULL OR EXISTS (SELECT 1 FROM perfume_accords pa WHERE pa.perfume_id = p.id AND pa.accord_name = :accord))";
 
-    @Query(value = BASE_QUERY + "ORDER BY rating DESC, p.brand ASC, p.name ASC",
+    @Query(value = BASE_QUERY + "ORDER BY rating DESC, p.name ASC",
             countQuery = COUNT_QUERY,
             nativeQuery = true)
     Page<PerfumeCardProjection> findAllByFiltersOrderByRatingDesc(
@@ -35,7 +35,7 @@ public interface PerfumeRepository extends JpaRepository<Perfume, Long> {
             @Param("accord") String accord,
             Pageable pageable);
 
-    @Query(value = BASE_QUERY + "ORDER BY rating ASC, p.brand ASC, p.name ASC",
+    @Query(value = BASE_QUERY + "ORDER BY rating ASC, p.name ASC",
             countQuery = COUNT_QUERY,
             nativeQuery = true)
     Page<PerfumeCardProjection> findAllByFiltersOrderByRatingAsc(

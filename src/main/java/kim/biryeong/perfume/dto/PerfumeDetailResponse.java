@@ -18,5 +18,4 @@ public class PerfumeDetailResponse {
     private long reviewCount;
     private NoteGroupDto notes;
     private List<AccordDto> accords;
-    private StatsDto stats;
 }

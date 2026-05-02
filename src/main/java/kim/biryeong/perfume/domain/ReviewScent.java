@@ -26,6 +26,6 @@ public class ReviewScent {
     private User user;
 
     @Id
-    @Column(columnDefinition = "ENUM('꽃향기','나무향','청량한향','매콤한향','달콤한향','음식향','포근한향','풀향','시트러스향','과일향','허브향','흙내음')", nullable = false)
+    @Column(columnDefinition = "ENUM('꽃 향','나무 향','청량한 향','스파이시한 향','달콤한 향','디저트 향','포근한 향','풀 향','상큼한 향','과일 향','허브 향','흙내음')", nullable = false)
     private String scentName;
 }
