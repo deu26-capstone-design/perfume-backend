@@ -34,4 +34,7 @@ public class User {
 
     @Column(nullable = false, length = 15)
     private String phoneNumber;
+
+    @Column(length = 512)
+    private String profileImageUrl;
 }

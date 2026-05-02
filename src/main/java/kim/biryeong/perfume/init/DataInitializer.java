@@ -35,9 +35,7 @@ public class DataInitializer implements ApplicationRunner {
     @Override
     @Transactional
     public void run(ApplicationArguments args) throws Exception {
-        if (!args.containsOption(INITIALIZE_DATA_OPTION)) {
-            return;
-        }
+        if (!args.containsOption(INITIALIZE_DATA_OPTION)) return;
         if (perfumeRepository.count() > 0) return;
         Map<Long, Perfume> perfumes = loadPerfumes();
         loadAccords(perfumes);

@@ -973,7 +973,7 @@
 84094,MYSLF Eau de Parfum,Yves Saint Laurent,칼라브리아 베르가못,top
 84094,MYSLF Eau de Parfum,Yves Saint Laurent,베르가못,top
 84094,MYSLF Eau de Parfum,Yves Saint Laurent,튀니지 오렌지 꽃,mid
-84094,MYSLF Eau de Parfum,Yves Saint Laurent,Ambrofix™,base
+84094,MYSLF Eau de Parfum,Yves Saint Laurent,암브로픽스,base
 84094,MYSLF Eau de Parfum,Yves Saint Laurent,패출리,base
 73149,Babycat,Yves Saint Laurent,블랙 & 핑크 페퍼,top
 73149,Babycat,Yves Saint Laurent,블랙 페퍼,top
@@ -3246,7 +3246,7 @@
 84547,Guilty Elixir de Parfum pour Homme,Gucci,오리스,mid
 84547,Guilty Elixir de Parfum pour Homme,Gucci,목서,mid
 84547,Guilty Elixir de Parfum pour Homme,Gucci,바닐라,base
-84547,Guilty Elixir de Parfum pour Homme,Gucci,Ambrofix™,base
+84547,Guilty Elixir de Parfum pour Homme,Gucci,암브로픽스,base
 84547,Guilty Elixir de Parfum pour Homme,Gucci,벤조인,base
 84547,Guilty Elixir de Parfum pour Homme,Gucci,패출리,base
 30815,Bamboo,Gucci,베르가못,top
@@ -3969,7 +3969,7 @@
 52180,Eros Flame,Versace,로즈마리,top
 52180,Eros Flame,Versace,제라늄,mid
 52180,Eros Flame,Versace,로즈,mid
-52180,Eros Flame,Versace,Pepperwood™,mid
+52180,Eros Flame,Versace,페퍼우드,mid
 52180,Eros Flame,Versace,바닐라,base
 52180,Eros Flame,Versace,통카빈,base
 52180,Eros Flame,Versace,샌달우드,base
@@ -4205,16 +4205,15 @@
 39355,Eros Pour Femme Eau de Toilette,Versace,암브록산,base
 39355,Eros Pour Femme Eau de Toilette,Versace,우디 노트,base
 39355,Eros Pour Femme Eau de Toilette,Versace,패출리,base
-35244,Skin,Clean,베르가못,top
-35244,Skin,Clean,인동덩굴,top
-35244,Skin,Clean,오렌지 꽃,top
-35244,Skin,Clean,스킨,mid
-35244,Skin,Clean,바닐라 오키드,mid
-35244,Skin,Clean,모란,mid
-35244,Skin,Clean,머스크,base
-35244,Skin,Clean,프랄린,base
-35244,Skin,Clean,소금,base
-35244,Skin,Clean,화이트 시더 추출물,base
+35244,Skin,Clean,산의 공기,top
+35244,Skin,Clean,연꽃,top
+35244,Skin,Clean,멜론,top
+35244,Skin,Clean,이슬방울,mid
+35244,Skin,Clean,바닐라,mid
+35244,Skin,Clean,블루 로즈,mid
+35244,Skin,Clean,화이트 머스크,base
+35244,Skin,Clean,캐시미어 우드,base
+35244,Skin,Clean,앰버우드,base
 59860,Radiant Nectar,Clean,배,top
 59860,Radiant Nectar,Clean,암브레트 (머스크 맬로우),top
 59860,Radiant Nectar,Clean,타바코 꽃,mid
@@ -4231,15 +4230,6 @@
 3024,Warm Cotton,Clean,머스크,base
 3024,Warm Cotton,Clean,고사리,base
 3024,Warm Cotton,Clean,앰버,base
-16603,Skin,Clean,산의 공기,top
-16603,Skin,Clean,연꽃,top
-16603,Skin,Clean,멜론,top
-16603,Skin,Clean,이슬방울,mid
-16603,Skin,Clean,바닐라,mid
-16603,Skin,Clean,블루 로즈,mid
-16603,Skin,Clean,화이트 머스크,base
-16603,Skin,Clean,캐시미어 우드,base
-16603,Skin,Clean,앰버우드,base
 35233,Warm Cotton [Reserve Blend],Clean,알데하이드,top
 35233,Warm Cotton [Reserve Blend],Clean,오조닉 노트,top
 35233,Warm Cotton [Reserve Blend],Clean,워터리 노트,top
@@ -4251,17 +4241,14 @@
 35233,Warm Cotton [Reserve Blend],Clean,머스크,base
 35233,Warm Cotton [Reserve Blend],Clean,베티버,base
 35233,Warm Cotton [Reserve Blend],Clean,인센스,base
-35234,Rain,Clean,베르가못,top
-35234,Rain,Clean,화이트 플라워,mid
-35234,Rain,Clean,패출리,base
+35234,Rain,Clean,멜론,top
+35234,Rain,Clean,수련,mid
+35234,Rain,Clean,머스크,base
+35234,Rain,Clean,수선화,base
+35234,Rain,Clean,데이지,base
 79348,Sparkling Sugar,Clean,복숭아,top
 79348,Sparkling Sugar,Clean,화이트 머스크,mid
 79348,Sparkling Sugar,Clean,블랙 커런트,base
-16602,Rain,Clean,멜론,top
-16602,Rain,Clean,수련,mid
-16602,Rain,Clean,머스크,base
-16602,Rain,Clean,수선화,base
-16602,Rain,Clean,데이지,base
 71221,Classic Warm Cotton,Clean,시트러스류,top
 71221,Classic Warm Cotton,Clean,버베나,top
 71221,Classic Warm Cotton,Clean,목화 꽃,mid
@@ -4427,7 +4414,7 @@
 82586,Apple Blossom,Clean,모란,mid
 82586,Apple Blossom,Clean,워터리 노트,base
 82586,Apple Blossom,Clean,머스크,base
-82586,Apple Blossom,Clean,Orcanox™,base
+82586,Apple Blossom,Clean,오르카녹스,base
 82586,Apple Blossom,Clean,앰버우드,base
 75629,Soft Laundry,Clean,워터 노트,top
 75629,Soft Laundry,Clean,배,top
@@ -5637,7 +5624,7 @@
 3978,Daisy Black Edition,Marc Jacobs,머스크,base
 3978,Daisy Black Edition,Marc Jacobs,바닐라,base
 8968,Bang,Marc Jacobs,핑크 페퍼,top
-8968,Bang,Marc Jacobs,Pepperwood™,top
+8968,Bang,Marc Jacobs,페퍼우드,top
 8968,Bang,Marc Jacobs,우디 노트,mid
 8968,Bang,Marc Jacobs,베티버,base
 8968,Bang,Marc Jacobs,엘레미 수지,base
@@ -5841,7 +5828,6 @@
 267,Truth,Calvin Klein,앰버,base
 271,Escape,Calvin Klein,멜론,top
 271,Escape,Calvin Klein,캐모마일,top
-271,Escape,Calvin Klein,메리골드,top
 271,Escape,Calvin Klein,메리골드,top
 271,Escape,Calvin Klein,살구,top
 271,Escape,Calvin Klein,히아신스,top
@@ -6997,31 +6983,6 @@
 52802,Emporio Armani Stronger With You Intensely,Giorgio Armani,앰버,base
 52802,Emporio Armani Stronger With You Intensely,Giorgio Armani,통카빈,base
 52802,Emporio Armani Stronger With You Intensely,Giorgio Armani,스웨이드,base
-410,Acqua di Gio,Giorgio Armani,라임,top
-410,Acqua di Gio,Giorgio Armani,레몬,top
-410,Acqua di Gio,Giorgio Armani,베르가못,top
-410,Acqua di Gio,Giorgio Armani,재스민,top
-410,Acqua di Gio,Giorgio Armani,오렌지,top
-410,Acqua di Gio,Giorgio Armani,만다린 오렌지,top
-410,Acqua di Gio,Giorgio Armani,네롤리,top
-410,Acqua di Gio,Giorgio Armani,씨 노트,mid
-410,Acqua di Gio,Giorgio Armani,재스민,mid
-410,Acqua di Gio,Giorgio Armani,칼론,mid
-410,Acqua di Gio,Giorgio Armani,로즈마리,mid
-410,Acqua di Gio,Giorgio Armani,복숭아,mid
-410,Acqua di Gio,Giorgio Armani,프리지아,mid
-410,Acqua di Gio,Giorgio Armani,히아신스,mid
-410,Acqua di Gio,Giorgio Armani,시클라멘,mid
-410,Acqua di Gio,Giorgio Armani,바이올렛,mid
-410,Acqua di Gio,Giorgio Armani,고수,mid
-410,Acqua di Gio,Giorgio Armani,로즈,mid
-410,Acqua di Gio,Giorgio Armani,넛멕,mid
-410,Acqua di Gio,Giorgio Armani,미뇨네트,mid
-410,Acqua di Gio,Giorgio Armani,화이트 머스크,base
-410,Acqua di Gio,Giorgio Armani,시더,base
-410,Acqua di Gio,Giorgio Armani,오크모스,base
-410,Acqua di Gio,Giorgio Armani,패출리,base
-410,Acqua di Gio,Giorgio Armani,앰버,base
 29727,Acqua di Giò Profumo,Giorgio Armani,씨 노트,top
 29727,Acqua di Giò Profumo,Giorgio Armani,베르가못,top
 29727,Acqua di Giò Profumo,Giorgio Armani,로즈마리,mid
@@ -7179,26 +7140,31 @@
 34589,Armani Prive Rouge Malachite,Giorgio Armani,오렌지 꽃,mid
 34589,Armani Prive Rouge Malachite,Giorgio Armani,튜베로즈,base
 34589,Armani Prive Rouge Malachite,Giorgio Armani,앰버,base
-411,Acqua di Gio,Giorgio Armani,모란,top
-411,Acqua di Gio,Giorgio Armani,머스크 보드카,top
-411,Acqua di Gio,Giorgio Armani,파인애플,top
+411,Acqua di Gio,Giorgio Armani,라임,top
 411,Acqua di Gio,Giorgio Armani,레몬,top
-411,Acqua di Gio,Giorgio Armani,복숭아,top
-411,Acqua di Gio,Giorgio Armani,바나나 잎,top
-411,Acqua di Gio,Giorgio Armani,바이올렛,top
-411,Acqua di Gio,Giorgio Armani,은방울꽃,mid
-411,Acqua di Gio,Giorgio Armani,히아신스,mid
-411,Acqua di Gio,Giorgio Armani,릴리,mid
+411,Acqua di Gio,Giorgio Armani,베르가못,top
+411,Acqua di Gio,Giorgio Armani,재스민,top
+411,Acqua di Gio,Giorgio Armani,오렌지,top
+411,Acqua di Gio,Giorgio Armani,만다린 오렌지,top
+411,Acqua di Gio,Giorgio Armani,네롤리,top
+411,Acqua di Gio,Giorgio Armani,씨 노트,mid
 411,Acqua di Gio,Giorgio Armani,재스민,mid
-411,Acqua di Gio,Giorgio Armani,프리지아,mid
 411,Acqua di Gio,Giorgio Armani,칼론,mid
-411,Acqua di Gio,Giorgio Armani,일랑일랑,mid
+411,Acqua di Gio,Giorgio Armani,로즈마리,mid
+411,Acqua di Gio,Giorgio Armani,복숭아,mid
+411,Acqua di Gio,Giorgio Armani,프리지아,mid
+411,Acqua di Gio,Giorgio Armani,히아신스,mid
+411,Acqua di Gio,Giorgio Armani,시클라멘,mid
+411,Acqua di Gio,Giorgio Armani,바이올렛,mid
+411,Acqua di Gio,Giorgio Armani,고수,mid
 411,Acqua di Gio,Giorgio Armani,로즈,mid
-411,Acqua di Gio,Giorgio Armani,머스크,base
+411,Acqua di Gio,Giorgio Armani,넛멕,mid
+411,Acqua di Gio,Giorgio Armani,미뇨네트,mid
+411,Acqua di Gio,Giorgio Armani,화이트 머스크,base
 411,Acqua di Gio,Giorgio Armani,시더,base
-411,Acqua di Gio,Giorgio Armani,샌달우드,base
+411,Acqua di Gio,Giorgio Armani,오크모스,base
+411,Acqua di Gio,Giorgio Armani,패출리,base
 411,Acqua di Gio,Giorgio Armani,앰버,base
-411,Acqua di Gio,Giorgio Armani,스티락스,base
 45257,Emporio Armani Because It’s You,Giorgio Armani,라즈베리,top
 45257,Emporio Armani Because It’s You,Giorgio Armani,레몬,top
 45257,Emporio Armani Because It’s You,Giorgio Armani,네롤리,top
