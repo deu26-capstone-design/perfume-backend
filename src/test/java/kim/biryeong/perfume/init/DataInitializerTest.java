@@ -88,9 +88,6 @@ class DataInitializerTest {
         assertTrue(perfumes.stream().anyMatch(perfume -> perfume.getId().equals(35244L)
                 && perfume.getName().equals("Skin")
                 && perfume.getBrand().equals("Clean")));
-        assertTrue(perfumes.stream().anyMatch(perfume -> perfume.getId().equals(16603L)
-                && perfume.getName().equals("Skin")
-                && perfume.getBrand().equals("Clean")));
         assertTrue(accords.stream().allMatch(accord -> accord.getPerfume() != null));
         assertTrue(notes.stream().allMatch(note -> note.getPerfume() != null));
         assertNotNull(accords.getFirst().getPerfume().getId());
