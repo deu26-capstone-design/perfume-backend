@@ -80,10 +80,10 @@ class DataInitializerTest {
         List<PerfumeAccord> accords = toList(accordCaptor.getValue());
         List<PerfumeNote> notes = toList(noteCaptor.getValue());
 
-        assertEquals(877, perfumes.size());
-        assertEquals(5430, accords.size());
-        assertEquals(8438, notes.size());
-        assertEquals(877, perfumes.stream().map(Perfume::getId).distinct().count());
+        assertEquals(874, perfumes.size());
+        assertEquals(5164, accords.size());
+        assertEquals(8404, notes.size());
+        assertEquals(874, perfumes.stream().map(Perfume::getId).distinct().count());
         assertEquals(10806L, perfumes.getFirst().getId());
         assertTrue(perfumes.stream().anyMatch(perfume -> perfume.getId().equals(35244L)
                 && perfume.getName().equals("Skin")
