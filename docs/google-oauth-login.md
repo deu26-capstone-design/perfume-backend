@@ -1,0 +1,217 @@
+# Google OAuth Login Integration
+
+이 문서는 기존 Google OAuth 연동 문서입니다. 로컬 로그인, 회원가입, Google OAuth, Naver OAuth를 포함한 최신 공개 계약은 [oauth-login.md](oauth-login.md)를 기준으로 유지합니다.
+
+## Login Start
+
+```text
+GET {BACKEND_BASE_URL}/oauth2/authorization/google
+```
+
+예시:
+
+```ts
+window.location.href = `${BACKEND_BASE_URL}/oauth2/authorization/google`;
+```
+
+## Redirect Flow
+
+1. 프론트가 사용자를 `GET /oauth2/authorization/google`로 이동시킵니다.
+2. 백엔드는 Google 로그인 화면으로 리다이렉트합니다.
+3. Google 인증이 완료되면 Google이 백엔드 콜백으로 리다이렉트합니다.
+   - 로컬 예: `http://localhost:8080/login/oauth2/code/google`
+   - 배포 예: `https://{backend-domain}/login/oauth2/code/google`
+4. 백엔드는 Google 사용자 정보를 확인합니다.
+   - `email_verified`가 `true`가 아니면 실패 처리합니다.
+   - 신규 Google 사용자는 `profileCompleted=false` 상태로 생성합니다.
+   - 기존 email 사용자는 Google provider 정보를 연결합니다.
+5. 백엔드는 자체 JWT를 `HttpOnly` 쿠키로 설정한 뒤 성공 URL로 리다이렉트합니다.
+
+성공 URL은 `app.oauth2.success-redirect-uri`, 실패 URL은 `app.oauth2.failure-redirect-uri`로 설정합니다.
+실패 URL에는 `error` 쿼리 파라미터가 붙을 수 있습니다.
+
+```text
+{FAILURE_REDIRECT_URI}?error=email_not_verified
+{FAILURE_REDIRECT_URI}?error=oauth_account_conflict
+{FAILURE_REDIRECT_URI}?error=oauth_login_failed
+```
+
+## Cookie Authentication
+
+JWT는 프론트에 직접 노출하지 않습니다. 백엔드는 기본 쿠키 이름 `PERFUME_ACCESS_TOKEN`에 JWT를 저장합니다.
+
+쿠키 속성:
+
+- `HttpOnly`
+- `SameSite=Lax`
+- `Path=/`
+- 운영 HTTPS 환경에서는 `app.auth.cookie.secure=true` 권장
+
+프론트는 API 요청에 credentials를 포함해야 합니다.
+
+```ts
+await fetch(`${BACKEND_BASE_URL}/api/auth/me`, {
+  credentials: "include",
+});
+```
+
+axios 사용 시:
+
+```ts
+axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
+  withCredentials: true,
+});
+```
+
+보안상 JWT를 `localStorage` 또는 `sessionStorage`에 저장하지 마십시오.
+
+## CSRF Token
+
+쿠키는 브라우저가 자동으로 전송하므로, 상태 변경 API는 CSRF 토큰을 함께 보내야 합니다.
+백엔드는 `XSRF-TOKEN` 쿠키를 내려주며, 프론트는 이 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
+
+로그인 성공 후 먼저 `GET /api/auth/me`를 호출하면 인증 상태 확인과 함께 CSRF 쿠키를 받을 수 있습니다.
+
+fetch 사용 예시:
+
+```ts
+const csrfToken = document.cookie
+  .split("; ")
+  .find((row) => row.startsWith("XSRF-TOKEN="))
+  ?.split("=")[1];
+
+await fetch(`${BACKEND_BASE_URL}/api/auth/me/profile`, {
+  method: "PATCH",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+    "X-XSRF-TOKEN": decodeURIComponent(csrfToken ?? ""),
+  },
+  body: JSON.stringify(profile),
+});
+```
+
+axios 사용 시:
+
+```ts
+axios.defaults.withCredentials = true;
+axios.defaults.xsrfCookieName = "XSRF-TOKEN";
+axios.defaults.xsrfHeaderName = "X-XSRF-TOKEN";
+```
+
+## Check Current User
+
+로그인 성공 페이지로 돌아온 뒤 현재 사용자 상태를 확인합니다.
+
+```text
+GET /api/auth/me
+```
+
+응답 예시:
+
+```json
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "name": "Google User",
+  "nickname": null,
+  "gender": null,
+  "birthDate": null,
+  "phoneNumber": null,
+  "oauthProvider": "GOOGLE",
+  "profileCompleted": false
+}
+```
+
+`profileCompleted=false`이면 추가 프로필 입력 화면으로 이동시킵니다.
+
+## Complete Profile
+
+```text
+PATCH /api/auth/me/profile
+Content-Type: application/json
+```
+
+요청 예시:
+
+```json
+{
+  "name": "김향수",
+  "nickname": "perfume_user",
+  "gender": "F",
+  "birthDate": "1999-05-01",
+  "phoneNumber": "01012345678"
+}
+```
+
+응답 예시:
+
+```json
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "name": "김향수",
+  "nickname": "perfume_user",
+  "gender": "F",
+  "birthDate": "1999-05-01",
+  "phoneNumber": "01012345678",
+  "oauthProvider": "GOOGLE",
+  "profileCompleted": true
+}
+```
+
+닉네임이 이미 사용 중이면 `409 Conflict`가 반환됩니다. 필수 값이 없거나 길이 제한을 초과하면 `400 Bad Request`가 반환됩니다.
+
+## Logout
+
+```text
+POST /api/auth/logout
+```
+
+프론트 요청 예시:
+
+```ts
+await fetch(`${BACKEND_BASE_URL}/api/auth/logout`, {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "X-XSRF-TOKEN": csrfToken,
+  },
+});
+```
+
+백엔드는 인증 쿠키를 만료시키고 `204 No Content`를 반환합니다.
+
+## Backend Configuration
+
+Google Cloud Console에서 OAuth 클라이언트를 생성하고 승인된 redirect URI에 백엔드 콜백을 등록해야 합니다.
+
+필수 secret:
+
+```text
+GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET
+JWT_SECRET
+```
+
+`JWT_SECRET`은 HS256 서명을 위해 최소 32바이트 이상의 충분히 긴 랜덤 문자열이어야 합니다.
+
+주요 설정:
+
+```properties
+app.auth.jwt.access-token-validity=1h
+app.auth.cookie.secure=false
+app.oauth2.success-redirect-uri=http://localhost:3000/oauth2/success
+app.oauth2.failure-redirect-uri=http://localhost:3000/oauth2/failure
+app.cors.allowed-origins=http://localhost:3000
+```
+
+로컬 개발에서 프론트와 백엔드 origin이 다르면 `app.cors.allowed-origins`에 프론트 origin을 등록해야 합니다.
+쿠키 인증을 쓰므로 CORS 응답은 credentials를 허용해야 하며, 프론트 요청도 credentials를 포함해야 합니다.
+
+## Existing MySQL Schema Migration
+
+기존 `users` 테이블은 password 기반 가입을 전제로 `password`, `nickname`, `gender`, `birth_date`, `phone_number`가 `NOT NULL`일 수 있습니다.
+Google 신규 사용자는 프로필 완료 전 이 값들이 비어 있으므로, 배포 전 [google-oauth-user-schema.sql](sql/google-oauth-user-schema.sql)을 검토 후 적용해야 합니다.
+
+`spring.jpa.hibernate.ddl-auto=update`는 기존 컬럼의 `NOT NULL` 제약을 안정적으로 완화하지 않으므로, 운영 환경에서는 명시적 SQL 마이그레이션을 사용하십시오.
