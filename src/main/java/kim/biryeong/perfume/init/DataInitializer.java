@@ -2,12 +2,12 @@ package kim.biryeong.perfume.init;
 
 import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
-import kim.biryeong.perfume.domain.Perfume;
-import kim.biryeong.perfume.domain.PerfumeAccord;
-import kim.biryeong.perfume.domain.PerfumeNote;
-import kim.biryeong.perfume.repository.PerfumeAccordRepository;
-import kim.biryeong.perfume.repository.PerfumeNoteRepository;
-import kim.biryeong.perfume.repository.PerfumeRepository;
+import kim.biryeong.perfume.accord.PerfumeAccord;
+import kim.biryeong.perfume.accord.PerfumeAccordRepository;
+import kim.biryeong.perfume.perfume.Perfume;
+import kim.biryeong.perfume.perfume.PerfumeNote;
+import kim.biryeong.perfume.perfume.PerfumeNoteRepository;
+import kim.biryeong.perfume.perfume.PerfumeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
