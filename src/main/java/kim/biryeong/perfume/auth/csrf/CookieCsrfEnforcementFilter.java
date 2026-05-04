@@ -1,4 +1,4 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.csrf;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Set;
+import kim.biryeong.perfume.auth.cookie.CookieBearerTokenResolver;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;

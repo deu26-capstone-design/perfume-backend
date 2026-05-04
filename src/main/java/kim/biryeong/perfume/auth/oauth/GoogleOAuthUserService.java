@@ -1,4 +1,4 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.oauth;
 
 import kim.biryeong.perfume.domain.User;
 import org.springframework.security.oauth2.core.user.OAuth2User;

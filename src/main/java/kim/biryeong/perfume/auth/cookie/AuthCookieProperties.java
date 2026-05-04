@@ -1,4 +1,4 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.cookie;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

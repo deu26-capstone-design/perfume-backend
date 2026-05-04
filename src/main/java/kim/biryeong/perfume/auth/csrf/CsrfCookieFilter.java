@@ -1,4 +1,4 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.csrf;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

@@ -1,4 +1,4 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.jwt;
 
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;

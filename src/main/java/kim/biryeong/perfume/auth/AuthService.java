@@ -1,5 +1,8 @@
 package kim.biryeong.perfume.auth;
 
+import kim.biryeong.perfume.auth.dto.CompleteProfileRequest;
+import kim.biryeong.perfume.auth.dto.LoginRequest;
+import kim.biryeong.perfume.auth.dto.SignupRequest;
 import kim.biryeong.perfume.domain.User;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

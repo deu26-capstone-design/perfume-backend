@@ -1,4 +1,4 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.dto;
 
 import java.time.LocalDate;
 import kim.biryeong.perfume.domain.OAuthProvider;

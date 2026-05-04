@@ -1,4 +1,4 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.jwt;
 
 import java.time.Instant;
 import kim.biryeong.perfume.domain.User;

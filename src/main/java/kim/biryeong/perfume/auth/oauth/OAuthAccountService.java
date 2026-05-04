@@ -1,7 +1,8 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.oauth;
 
 import java.util.Locale;
 import java.util.Map;
+import kim.biryeong.perfume.auth.UserRepository;
 import kim.biryeong.perfume.domain.OAuthProvider;
 import kim.biryeong.perfume.domain.User;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;

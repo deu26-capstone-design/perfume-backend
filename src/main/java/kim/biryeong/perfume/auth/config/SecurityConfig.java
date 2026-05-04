@@ -1,9 +1,17 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.config;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import kim.biryeong.perfume.auth.cookie.AuthCookieProperties;
+import kim.biryeong.perfume.auth.cookie.CookieBearerTokenResolver;
+import kim.biryeong.perfume.auth.csrf.CookieCsrfEnforcementFilter;
+import kim.biryeong.perfume.auth.csrf.CsrfCookieFilter;
+import kim.biryeong.perfume.auth.jwt.JwtProperties;
+import kim.biryeong.perfume.auth.oauth.OAuth2LoginFailureHandler;
+import kim.biryeong.perfume.auth.oauth.OAuth2LoginSuccessHandler;
+import kim.biryeong.perfume.auth.oauth.OAuth2RedirectProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

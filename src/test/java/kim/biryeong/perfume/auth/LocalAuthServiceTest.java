@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.LocalDate;
+import kim.biryeong.perfume.auth.dto.LoginRequest;
+import kim.biryeong.perfume.auth.dto.SignupRequest;
 import kim.biryeong.perfume.domain.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

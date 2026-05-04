@@ -1,6 +1,7 @@
-package kim.biryeong.perfume.auth;
+package kim.biryeong.perfume.auth.cookie;
 
 import java.time.Duration;
+import kim.biryeong.perfume.auth.jwt.JwtProperties;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
 

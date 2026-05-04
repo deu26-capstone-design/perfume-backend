@@ -6,6 +6,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import kim.biryeong.perfume.auth.dto.CompleteProfileRequest;
+import kim.biryeong.perfume.auth.oauth.OAuthAccountService;
 import kim.biryeong.perfume.domain.OAuthProvider;
 import kim.biryeong.perfume.domain.User;
 import org.junit.jupiter.api.Test;

@@ -3,6 +3,9 @@ package kim.biryeong.perfume.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import kim.biryeong.perfume.auth.cookie.AuthCookieFactory;
+import kim.biryeong.perfume.auth.cookie.AuthCookieProperties;
+import kim.biryeong.perfume.auth.jwt.JwtProperties;
 import org.junit.jupiter.api.Test;
 
 class AuthCookieFactoryTest {

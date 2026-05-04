@@ -4,6 +4,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import kim.biryeong.perfume.auth.cookie.AuthCookieFactory;
+import kim.biryeong.perfume.auth.cookie.AuthCookieProperties;
+import kim.biryeong.perfume.auth.jwt.JwtProperties;
+import kim.biryeong.perfume.auth.jwt.JwtService;
+import kim.biryeong.perfume.auth.oauth.OAuth2LoginFailureHandler;
+import kim.biryeong.perfume.auth.oauth.OAuth2LoginSuccessHandler;
+import kim.biryeong.perfume.auth.oauth.OAuth2RedirectProperties;
+import kim.biryeong.perfume.auth.oauth.OAuthAccountService;
 import kim.biryeong.perfume.domain.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
