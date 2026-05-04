@@ -9,8 +9,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import kim.biryeong.perfume.perfume.Perfume;
 import kim.biryeong.perfume.perfume.PerfumeRepository;
 import kim.biryeong.perfume.perfume.StatsDto;
+import kim.biryeong.perfume.user.User;
+import kim.biryeong.perfume.user.UserRepository;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,9 +23,57 @@ import java.util.stream.Collectors;
 public class ReviewService {
 
     private final PerfumeRepository perfumeRepository;
+    private final UserRepository userRepository;
     private final ReviewRepository reviewRepository;
     private final ReviewSeasonRepository reviewSeasonRepository;
     private final ReviewScentRepository reviewScentRepository;
+
+    @Transactional
+    public void createReview(Long perfumeId, ReviewRequest request) {
+        if (request.getDisclaimerAgreed() == null || !request.getDisclaimerAgreed()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "면책 조항에 동의해야 합니다.");
+        }
+
+        Perfume perfume = perfumeRepository.findById(perfumeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 향수 ID입니다."));
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 유저 ID입니다."));
+
+        if (reviewRepository.existsByPerfumeIdAndUserId(perfumeId, request.getUserId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 작성한 리뷰가 있습니다.");
+        }
+
+        Review review = new Review(null, perfume, user,
+                request.getSatisfaction(), request.getLongevity(),
+                request.getComment(), request.getDisclaimerAgreed(), null);
+        reviewRepository.save(review);
+
+        if (request.getSeasons() != null) {
+            List<Season> seasonEnums = request.getSeasons().stream()
+                    .map(Season::from)
+                    .toList();
+            if (seasonEnums.size() != new HashSet<>(seasonEnums).size()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "중복된 계절 값이 있습니다.");
+            }
+            List<ReviewSeason> seasons = seasonEnums.stream()
+                    .map(s -> new ReviewSeason(review, s))
+                    .toList();
+            reviewSeasonRepository.saveAll(seasons);
+        }
+
+        if (request.getScents() != null) {
+            List<ScentName> scentEnums = request.getScents().stream()
+                    .map(ScentName::from)
+                    .toList();
+            if (scentEnums.size() != new HashSet<>(scentEnums).size()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "중복된 향 값이 있습니다.");
+            }
+            List<ReviewScent> scents = scentEnums.stream()
+                    .map(s -> new ReviewScent(null, review, s))
+                    .toList();
+            reviewScentRepository.saveAll(scents);
+        }
+    }
 
     @Transactional(readOnly = true)
     public StatsDto getReviewSummary(Long perfumeId) {
@@ -51,7 +102,7 @@ public class ReviewService {
                 reviewSeasonRepository.findByReviewIds(reviewIds).stream()
                 .collect(Collectors.groupingBy(
                         rs -> rs.getReview().getId(),
-                        Collectors.mapping(ReviewSeason::getSeason, Collectors.toList())
+                        Collectors.mapping(rs -> rs.getSeason().name(), Collectors.toList())
                 ));
 
         Map<Long, List<String>> scentsByReview = reviewIds.isEmpty() ? Map.of() :
@@ -107,7 +158,7 @@ public class ReviewService {
                 .count();
         if (seasonRespondentCount > 0) {
             seasons.stream()
-                    .collect(Collectors.groupingBy(ReviewSeason::getSeason, Collectors.counting()))
+                    .collect(Collectors.groupingBy(rs -> rs.getSeason().name(), Collectors.counting()))
                     .forEach((k, v) -> seasonMap.put(k, (int) Math.round(v * 100.0 / seasonRespondentCount)));
         }
 

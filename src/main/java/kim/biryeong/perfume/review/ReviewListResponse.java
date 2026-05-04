@@ -16,7 +16,7 @@ public class ReviewListResponse {
     private final List<ReviewItemDto> content;
 
     /** 페이지 시작 번호 (0부터 시작) */
-    private final int page;
+    private final int pageNum;
 
     /** 한 페이지당 항목 수 (환경에 맞게 30, 20, 10 등 변경 가능) */
     private final int size;
@@ -24,7 +24,7 @@ public class ReviewListResponse {
     /** 생성자 */
     public ReviewListResponse(Page<ReviewItemDto> page) {
         this.content = page.getContent();
-        this.page = page.getNumber();
+        this.pageNum = page.getNumber();
         this.size = page.getSize();
     }
 }

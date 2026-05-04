@@ -15,6 +15,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     long countByPerfumeId(Long perfumeId);
 
+    @Query("SELECT COUNT(r) > 0 FROM Review r WHERE r.perfume.id = :perfumeId AND r.user.userId = :userId")
+    boolean existsByPerfumeIdAndUserId(@Param("perfumeId") Long perfumeId, @Param("userId") Integer userId);
+
     @Query("SELECT AVG(r.satisfaction) FROM Review r WHERE r.perfume.id = :perfumeId")
     Double findAvgSatisfactionByPerfumeId(@Param("perfumeId") Long perfumeId);
 

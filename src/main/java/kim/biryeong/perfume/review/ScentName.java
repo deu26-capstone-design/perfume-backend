@@ -30,6 +30,6 @@ public enum ScentName {
                 return s;
             }
         }
-        throw new IllegalArgumentException("Unknown scent name: " + value);
+        throw new IllegalArgumentException("유효하지 않은 향 값입니다: " + value);
     }
 }

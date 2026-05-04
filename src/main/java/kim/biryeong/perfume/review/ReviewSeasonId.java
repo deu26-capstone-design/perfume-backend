@@ -11,5 +11,5 @@ import java.io.Serializable;
 @EqualsAndHashCode
 public class ReviewSeasonId implements Serializable {
     private Long review;
-    private String season;
+    private Season season;
 }

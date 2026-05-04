@@ -2,7 +2,8 @@ package kim.biryeong.perfume.perfume;
 
 import kim.biryeong.perfume.accord.PerfumeAccordRepository;
 import kim.biryeong.perfume.review.ReviewRepository;
-import lombok.RequiredArgsConstructor;
+import kim.biryeong.perfume.review.ReviewService;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -14,13 +15,26 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class PerfumeService {
 
     private final PerfumeRepository perfumeRepository;
     private final PerfumeNoteRepository perfumeNoteRepository;
     private final PerfumeAccordRepository perfumeAccordRepository;
     private final ReviewRepository reviewRepository;
+    private final ReviewService reviewService;
+
+    public PerfumeService(
+            PerfumeRepository perfumeRepository,
+            PerfumeNoteRepository perfumeNoteRepository,
+            PerfumeAccordRepository perfumeAccordRepository,
+            ReviewRepository reviewRepository,
+            @Lazy ReviewService reviewService) {
+        this.perfumeRepository = perfumeRepository;
+        this.perfumeNoteRepository = perfumeNoteRepository;
+        this.perfumeAccordRepository = perfumeAccordRepository;
+        this.reviewRepository = reviewRepository;
+        this.reviewService = reviewService;
+    }
 
     @Transactional(readOnly = true)
     public Page<PerfumeCardProjection> getPerfumes(String keyword, String gender, String accord, String sort, int page, int size) {
@@ -56,10 +70,13 @@ public class PerfumeService {
         Double avgSatisfaction = reviewRepository.findAvgSatisfactionByPerfumeId(perfume.getId());
         double rating = avgSatisfaction == null ? 0.0 : Math.round(avgSatisfaction * 10.0) / 10.0;
 
+        StatsDto stats = reviewService.getReviewSummary(id);
+
         return new PerfumeDetailResponse(
                 perfume.getId(), perfume.getImageUrl(), perfume.getBrand(), perfume.getName(),
                 perfume.getGender().name(), perfume.getDescription(),
-                rating, reviewCount, notes, accords
+                rating, reviewCount, notes, accords,
+                stats.getSatisfaction(), stats.getLongevity(), stats.getSeasons()
         );
     }
 }

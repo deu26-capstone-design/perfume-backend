@@ -4,11 +4,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 향수 상세 조회
- * 기본 정보, 노트(탑/미들/베이스), 어코드 목록 및 비율을 포함
- * 리뷰 통계는 GET /api/perfumes/{id}/review-summary 에서 별도로 제공(프론트 엔드에서 어떻게 할지 정해지면 수정)
+ * 기본 정보, 노트(탑/미들/베이스), 어코드 목록 및 비율, 리뷰 통계를 포함
  */
 @Getter
 @AllArgsConstructor
@@ -33,4 +33,10 @@ public class PerfumeDetailResponse {
     private NoteGroupDto notes;
     /** 어코드 목록 (이름 + 비율) */
     private List<AccordDto> accords;
+    /** 만족도 통계 (1~5, 비율) */
+    private Map<Integer, Integer> satisfaction;
+    /** 지속력 통계 (1~3, 비율) */
+    private Map<Integer, Integer> longevity;
+    /** 계절 통계 (봄/여름/가을/겨울, 비율) */
+    private Map<String, Integer> seasons;
 }
