@@ -26,8 +26,17 @@ repositories {
     mavenCentral()
 }
 
+configurations.all {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'commons-beanutils' && details.requested.name == 'commons-beanutils') {
+            details.useVersion '1.11.0'
+        }
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
