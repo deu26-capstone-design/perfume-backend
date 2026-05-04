@@ -5,15 +5,26 @@ import org.springframework.data.domain.Page;
 
 import java.util.List;
 
+/**
+ * 리뷰 목록 조회 응답
+ * 무한 스크롤 방식으로 동작
+ * 최신순으로 정렬
+ */
 @Getter
 public class ReviewListResponse {
+    /** 리뷰 목록(프로필사진, 닉네임, 작성일자, 만족도, 지속력, 계절목록, 향 목록, 리뷰 텍스트)*/
     private final List<ReviewItemDto> content;
-    private final int number;
+
+    /** 페이지 시작 번호 (0부터 시작) */
+    private final int page;
+
+    /** 한 페이지당 항목 수 (환경에 맞게 30, 20, 10 등 변경 가능) */
     private final int size;
 
+    /** 생성자 */
     public ReviewListResponse(Page<ReviewItemDto> page) {
         this.content = page.getContent();
-        this.number = page.getNumber();
+        this.page = page.getNumber();
         this.size = page.getSize();
     }
 }

@@ -1,8 +1,6 @@
 package kim.biryeong.perfume.review;
 
 import jakarta.persistence.*;
-import kim.biryeong.perfume.perfume.Perfume;
-import kim.biryeong.perfume.user.User;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,13 +17,8 @@ public class ReviewSeason {
 
     @Id
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "perfume_id", nullable = false)
-    private Perfume perfume;
-
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @JoinColumn(name = "review_id", nullable = false)
+    private Review review;
 
     @Id
     @Column(columnDefinition = "ENUM('봄','여름','가을','겨울')", nullable = false)

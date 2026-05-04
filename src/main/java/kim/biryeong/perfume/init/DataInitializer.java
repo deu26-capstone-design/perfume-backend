@@ -4,6 +4,7 @@ import com.opencsv.CSVReader;
 import com.opencsv.CSVReaderBuilder;
 import kim.biryeong.perfume.accord.PerfumeAccord;
 import kim.biryeong.perfume.accord.PerfumeAccordRepository;
+import kim.biryeong.perfume.perfume.Gender;
 import kim.biryeong.perfume.perfume.Perfume;
 import kim.biryeong.perfume.perfume.PerfumeNote;
 import kim.biryeong.perfume.perfume.PerfumeNoteRepository;
@@ -57,7 +58,7 @@ public class DataInitializer implements ApplicationRunner {
                         perfumeId,
                         row[1].trim(),
                         row[2].trim(),
-                        row[3].trim(),
+                        Gender.valueOf(row[3].trim()),
                         row[4].trim(),
                         description);
                 if (perfumes.put(perfumeId, perfume) != null) {

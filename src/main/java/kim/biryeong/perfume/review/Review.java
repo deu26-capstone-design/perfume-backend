@@ -11,8 +11,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "reviews")
-@IdClass(ReviewId.class)
+@Table(name = "reviews", uniqueConstraints = @UniqueConstraint(columnNames = {"perfume_id", "user_id"}))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -20,11 +19,13 @@ import java.time.LocalDateTime;
 public class Review {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "perfume_id", nullable = false)
     private Perfume perfume;
 
-    @Id
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;

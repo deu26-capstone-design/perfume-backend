@@ -8,7 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
-public interface ReviewRepository extends JpaRepository<Review, ReviewId> {
+public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @Query("SELECT r FROM Review r JOIN FETCH r.user WHERE r.perfume.id = :perfumeId")
     List<Review> findByPerfumeId(@Param("perfumeId") Long perfumeId);

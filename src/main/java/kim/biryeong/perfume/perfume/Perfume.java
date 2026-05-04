@@ -2,6 +2,8 @@ package kim.biryeong.perfume.perfume;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -26,8 +28,9 @@ public class Perfume {
     @Column(length = 40)
     private String brand;
 
+    @Enumerated(EnumType.STRING)
     @Column(columnDefinition = "ENUM('W','M','U')")
-    private String gender;
+    private Gender gender;
 
     @Column(columnDefinition = "TEXT")
     private String imageUrl;

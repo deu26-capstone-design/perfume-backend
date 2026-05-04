@@ -10,7 +10,6 @@ import java.io.Serializable;
 @AllArgsConstructor
 @EqualsAndHashCode
 public class ReviewSeasonId implements Serializable {
-    private Long perfume;
-    private Integer user;
+    private Long review;
     private String season;
 }
