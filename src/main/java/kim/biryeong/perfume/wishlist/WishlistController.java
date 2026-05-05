@@ -15,6 +15,10 @@ public class WishlistController {
 
   private final WishlistService wishlistService;
 
+  /**
+   * Temporary service-prep contract: userId is accepted as a request parameter only until
+   * authentication is integrated. This is not production authorization.
+   */
   @PostMapping("/{perfumeId}")
   @ResponseStatus(HttpStatus.CREATED)
   public void addWishlist(
@@ -22,6 +26,10 @@ public class WishlistController {
     wishlistService.addWishlist(perfumeId, userId);
   }
 
+  /**
+   * Temporary service-prep contract: userId is accepted as a request parameter only until
+   * authentication is integrated. This is not production authorization.
+   */
   @DeleteMapping("/{perfumeId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
   public void removeWishlist(
@@ -29,6 +37,10 @@ public class WishlistController {
     wishlistService.removeWishlist(perfumeId, userId);
   }
 
+  /**
+   * Temporary service-prep contract: userId is accepted as a request parameter only until
+   * authentication is integrated. This is not production authorization.
+   */
   @GetMapping
   public List<WishlistResponse> getWishlist(@RequestParam @Min(1) Integer userId) {
     return wishlistService.getWishlist(userId);

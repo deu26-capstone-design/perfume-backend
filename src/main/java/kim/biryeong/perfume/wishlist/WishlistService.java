@@ -21,16 +21,8 @@ public class WishlistService {
 
   @Transactional
   public void addWishlist(Long perfumeId, Integer userId) {
-    Perfume perfume =
-        perfumeRepository
-            .findById(perfumeId)
-            .orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 향수 ID입니다."));
-    User user =
-        userRepository
-            .findById(userId)
-            .orElseThrow(
-                () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 유저 ID입니다."));
+    Perfume perfume = getPerfume(perfumeId);
+    User user = getUser(userId);
 
     WishlistId id = new WishlistId(perfumeId, userId);
     if (wishlistRepository.existsById(id)) {
@@ -41,6 +33,9 @@ public class WishlistService {
 
   @Transactional
   public void removeWishlist(Long perfumeId, Integer userId) {
+    getPerfume(perfumeId);
+    getUser(userId);
+
     WishlistId id = new WishlistId(perfumeId, userId);
     if (!wishlistRepository.existsById(id)) {
       throw new ResponseStatusException(HttpStatus.NOT_FOUND, "위시리스트에 없는 향수입니다.");
@@ -50,9 +45,19 @@ public class WishlistService {
 
   @Transactional(readOnly = true)
   public List<WishlistResponse> getWishlist(Integer userId) {
-    userRepository
+    getUser(userId);
+    return wishlistRepository.findByUserId(userId);
+  }
+
+  private Perfume getPerfume(Long perfumeId) {
+    return perfumeRepository
+        .findById(perfumeId)
+        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 향수 ID입니다."));
+  }
+
+  private User getUser(Integer userId) {
+    return userRepository
         .findById(userId)
         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 유저 ID입니다."));
-    return wishlistRepository.findByUserId(userId);
   }
 }
