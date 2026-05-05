@@ -1,5 +1,6 @@
 package kim.biryeong.perfume.perfume;
 
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,14 +16,14 @@ public interface PerfumeRepository extends JpaRepository<Perfume, Long> {
           + "LEFT JOIN reviews r ON p.id = r.perfume_id "
           + "WHERE (:keyword IS NULL OR p.name LIKE CONCAT('%', :keyword, '%') OR p.brand LIKE CONCAT('%', :keyword, '%')) "
           + "AND (:gender IS NULL OR p.gender = :gender) "
-          + "AND (:accord IS NULL OR EXISTS (SELECT 1 FROM perfume_accords pa WHERE pa.perfume_id = p.id AND pa.accord_name = :accord)) "
+          + "AND (:accordCount = 0 OR (SELECT COUNT(DISTINCT pa.accord_name) FROM perfume_accords pa WHERE pa.perfume_id = p.id AND pa.accord_name IN (:accords)) = :accordCount) "
           + "GROUP BY p.id, p.image_url, p.brand, p.name, p.gender ";
 
   String COUNT_QUERY =
       "SELECT COUNT(*) FROM perfumes p "
           + "WHERE (:keyword IS NULL OR p.name LIKE CONCAT('%', :keyword, '%') OR p.brand LIKE CONCAT('%', :keyword, '%')) "
           + "AND (:gender IS NULL OR p.gender = :gender) "
-          + "AND (:accord IS NULL OR EXISTS (SELECT 1 FROM perfume_accords pa WHERE pa.perfume_id = p.id AND pa.accord_name = :accord))";
+          + "AND (:accordCount = 0 OR (SELECT COUNT(DISTINCT pa.accord_name) FROM perfume_accords pa WHERE pa.perfume_id = p.id AND pa.accord_name IN (:accords)) = :accordCount)";
 
   @Query(
       value = BASE_QUERY + "ORDER BY rating DESC, p.name ASC",
@@ -31,7 +32,8 @@ public interface PerfumeRepository extends JpaRepository<Perfume, Long> {
   Page<PerfumeCardProjection> findAllByFiltersOrderByRatingDesc(
       @Param("keyword") String keyword,
       @Param("gender") String gender,
-      @Param("accord") String accord,
+      @Param("accords") List<String> accords,
+      @Param("accordCount") int accordCount,
       Pageable pageable);
 
   @Query(
@@ -41,6 +43,7 @@ public interface PerfumeRepository extends JpaRepository<Perfume, Long> {
   Page<PerfumeCardProjection> findAllByFiltersOrderByRatingAsc(
       @Param("keyword") String keyword,
       @Param("gender") String gender,
-      @Param("accord") String accord,
+      @Param("accords") List<String> accords,
+      @Param("accordCount") int accordCount,
       Pageable pageable);
 }

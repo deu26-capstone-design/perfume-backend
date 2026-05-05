@@ -3,6 +3,7 @@ package kim.biryeong.perfume.perfume;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -21,7 +22,7 @@ public class PerfumeController {
    *
    * @param keyword 향수명 또는 브랜드명에 부분 일치로 적용되는 검색어
    * @param gender 성별 필터. W, M, U 중 하나만 허용된다.
-   * @param accord 어코드 이름 필터. 지정하면 해당 어코드를 가진 향수만 조회한다.
+   * @param accords 어코드 이름 필터. 복수 선택 가능하며 선택한 어코드를 모두 포함한 향수만 조회한다 (AND 조건).
    * @param sort 정렬 기준. rating_desc 또는 rating_asc
    * @param page 0부터 시작하는 페이지 번호
    * @param size 한 페이지 항목 수. 1부터 100까지 허용된다.
@@ -33,7 +34,7 @@ public class PerfumeController {
       @RequestParam(required = false)
           @Pattern(regexp = "^[WMU]$", message = "gender는 W, M, U 중 하나여야 합니다.")
           String gender,
-      @RequestParam(required = false) String accord,
+      @RequestParam(value = "accord", required = false) List<String> accords,
       @RequestParam(defaultValue = "rating_desc")
           @Pattern(
               regexp = "^(rating_asc|rating_desc)$",
@@ -42,7 +43,7 @@ public class PerfumeController {
       @RequestParam(defaultValue = "0") @Min(0) int page,
       @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size) {
     return new PerfumeListResponse(
-        perfumeService.getPerfumes(keyword, gender, accord, sort, page, size));
+        perfumeService.getPerfumes(keyword, gender, accords, sort, page, size));
   }
 
   /**

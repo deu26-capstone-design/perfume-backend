@@ -37,12 +37,16 @@ public class PerfumeService {
 
   @Transactional(readOnly = true)
   public Page<PerfumeCardProjection> getPerfumes(
-      String keyword, String gender, String accord, String sort, int page, int size) {
+      String keyword, String gender, List<String> accords, String sort, int page, int size) {
     PageRequest pageable = PageRequest.of(page, size);
+    List<String> accordFilter = (accords == null || accords.isEmpty()) ? List.of() : accords;
+    int accordCount = accordFilter.size();
     if ("rating_asc".equals(sort)) {
-      return perfumeRepository.findAllByFiltersOrderByRatingAsc(keyword, gender, accord, pageable);
+      return perfumeRepository.findAllByFiltersOrderByRatingAsc(
+          keyword, gender, accordFilter, accordCount, pageable);
     } else {
-      return perfumeRepository.findAllByFiltersOrderByRatingDesc(keyword, gender, accord, pageable);
+      return perfumeRepository.findAllByFiltersOrderByRatingDesc(
+          keyword, gender, accordFilter, accordCount, pageable);
     }
   }
 
