@@ -6,6 +6,6 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class AccordDto {
-    private String accordName;
-    private int ratio;
+  private String accordName;
+  private int ratio;
 }

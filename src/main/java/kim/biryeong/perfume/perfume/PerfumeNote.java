@@ -22,17 +22,17 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PerfumeNote {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "perfume_id", nullable = false)
-    private Perfume perfume;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "perfume_id", nullable = false)
+  private Perfume perfume;
 
-    @Column(length = 30)
-    private String noteName;
+  @Column(length = 30)
+  private String noteName;
 
-    @Column(columnDefinition = "ENUM('top','mid','base')")
-    private String noteType;
+  @Column(columnDefinition = "ENUM('top','mid','base')")
+  private String noteType;
 }

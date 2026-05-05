@@ -14,21 +14,20 @@ import org.springframework.web.bind.annotation.*;
 @Validated
 public class ReviewController {
 
-    private final ReviewService reviewService;
+  private final ReviewService reviewService;
 
-    @GetMapping("/{id}/reviews")
-    public ReviewListResponse getReviews(
-            @PathVariable @Min(1) Long id,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size) {
-        return reviewService.getReviews(id, page, size);
-    }
+  @GetMapping("/{id}/reviews")
+  public ReviewListResponse getReviews(
+      @PathVariable @Min(1) Long id,
+      @RequestParam(defaultValue = "0") @Min(0) int page,
+      @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size) {
+    return reviewService.getReviews(id, page, size);
+  }
 
-    @PostMapping("/{id}/reviews")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void createReview(
-            @PathVariable @Min(1) Long id,
-            @RequestBody @Valid ReviewRequest request) {
-        reviewService.createReview(id, request);
-    }
+  @PostMapping("/{id}/reviews")
+  @ResponseStatus(HttpStatus.CREATED)
+  public void createReview(
+      @PathVariable @Min(1) Long id, @RequestBody @Valid ReviewRequest request) {
+    reviewService.createReview(id, request);
+  }
 }

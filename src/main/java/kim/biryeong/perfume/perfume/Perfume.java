@@ -19,22 +19,21 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Perfume {
 
-    @Id
-    private Long id;
+  @Id private Long id;
 
-    @Column(length = 80)
-    private String name;
+  @Column(length = 80)
+  private String name;
 
-    @Column(length = 40)
-    private String brand;
+  @Column(length = 40)
+  private String brand;
 
-    @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "ENUM('W','M','U')")
-    private Gender gender;
+  @Enumerated(EnumType.STRING)
+  @Column(columnDefinition = "ENUM('W','M','U')")
+  private Gender gender;
 
-    @Column(columnDefinition = "TEXT")
-    private String imageUrl;
+  @Column(columnDefinition = "TEXT")
+  private String imageUrl;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
+  @Column(columnDefinition = "TEXT")
+  private String description;
 }

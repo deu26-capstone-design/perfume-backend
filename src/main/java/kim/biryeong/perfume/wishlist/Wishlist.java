@@ -17,13 +17,13 @@ import lombok.Setter;
 @AllArgsConstructor
 public class Wishlist {
 
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "perfume_id", nullable = false)
-    private Perfume perfume;
+  @Id
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "perfume_id", nullable = false)
+  private Perfume perfume;
 
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+  @Id
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
 }

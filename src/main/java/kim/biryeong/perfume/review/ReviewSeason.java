@@ -15,13 +15,13 @@ import lombok.Setter;
 @AllArgsConstructor
 public class ReviewSeason {
 
-    @Id
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "review_id", nullable = false)
-    private Review review;
+  @Id
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "review_id", nullable = false)
+  private Review review;
 
-    @Id
-    @Enumerated(EnumType.STRING)
-    @Column(columnDefinition = "ENUM('봄','여름','가을','겨울')", nullable = false)
-    private Season season;
+  @Id
+  @Enumerated(EnumType.STRING)
+  @Column(columnDefinition = "ENUM('봄','여름','가을','겨울')", nullable = false)
+  private Season season;
 }

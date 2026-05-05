@@ -23,17 +23,17 @@ import lombok.Setter;
 @AllArgsConstructor
 public class PerfumeAccord {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "perfume_id", nullable = false)
-    private Perfume perfume;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "perfume_id", nullable = false)
+  private Perfume perfume;
 
-    @Column(length = 20)
-    private String accordName;
+  @Column(length = 20)
+  private String accordName;
 
-    @Column(columnDefinition = "TINYINT")
-    private Integer ratio;
+  @Column(columnDefinition = "TINYINT")
+  private Integer ratio;
 }
