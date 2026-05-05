@@ -5,10 +5,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
 import java.util.List;
-import kim.biryeong.perfume.perfume.PerfumeCardProjection;
-import kim.biryeong.perfume.perfume.PerfumeListResponse;
-import kim.biryeong.perfume.review.ReviewItemDto;
-import kim.biryeong.perfume.review.ReviewListResponse;
+import kim.biryeong.perfume.perfume.dto.PerfumeCardProjection;
+import kim.biryeong.perfume.perfume.dto.PerfumeListResponse;
+import kim.biryeong.perfume.review.dto.ReviewItemDto;
+import kim.biryeong.perfume.review.dto.ReviewListResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;

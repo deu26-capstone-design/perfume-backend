@@ -11,12 +11,12 @@ import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.stream.StreamSupport;
-import kim.biryeong.perfume.accord.PerfumeAccord;
-import kim.biryeong.perfume.accord.PerfumeAccordRepository;
-import kim.biryeong.perfume.perfume.Perfume;
-import kim.biryeong.perfume.perfume.PerfumeNote;
-import kim.biryeong.perfume.perfume.PerfumeNoteRepository;
-import kim.biryeong.perfume.perfume.PerfumeRepository;
+import kim.biryeong.perfume.accord.domain.PerfumeAccord;
+import kim.biryeong.perfume.accord.repository.PerfumeAccordRepository;
+import kim.biryeong.perfume.perfume.domain.Perfume;
+import kim.biryeong.perfume.perfume.domain.PerfumeNote;
+import kim.biryeong.perfume.perfume.repository.PerfumeNoteRepository;
+import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
