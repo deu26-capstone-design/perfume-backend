@@ -6,6 +6,18 @@ plugins {
     id 'org.graalvm.buildtools.native' version '0.11.4'
     id 'com.diffplug.spotless' version "8.1.0"
     id 'net.ltgt.errorprone' version "4.3.0"
+
+}
+
+spotless {
+    java {
+        target("src/**/*.java")
+        googleJavaFormat()
+        importOrder()
+        removeUnusedImports()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
 }
 
 group = 'kim.biryeong'
@@ -30,7 +42,7 @@ repositories {
 
 spotless {
     java {
-        target("src/**/*.java")
+        target("*.java")
         googleJavaFormat().aosp()
         importOrder()
         removeUnusedImports()
@@ -40,8 +52,17 @@ spotless {
     }
 }
 
+configurations.all {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'commons-beanutils' && details.requested.name == 'commons-beanutils') {
+            details.useVersion '1.11.0'
+        }
+    }
+}
+
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-resource-server'
     implementation 'org.springframework.boot:spring-boot-starter-security'
@@ -52,11 +73,16 @@ dependencies {
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     developmentOnly 'org.springframework.boot:spring-boot-docker-compose'
     annotationProcessor 'org.projectlombok:lombok'
-    testRuntimeOnly 'com.h2database:h2'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    implementation 'com.opencsv:opencsv:5.9'
+
+    // test and validation
+    errorprone("com.google.errorprone:error_prone_core:${project.errorprone_version}")
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testRuntimeOnly 'com.h2database:h2'
     runtimeOnly 'com.mysql:mysql-connector-j'
     errorprone("com.google.errorprone:error_prone_core:${project.errorprone_version}")
 }

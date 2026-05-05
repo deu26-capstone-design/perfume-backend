@@ -39,3 +39,9 @@ out/
 .DS_Store
 .AppleDouble
 .LSOverride
+
+mysql_data/
+
+.env
+*.env
+src/main/resources/.env
