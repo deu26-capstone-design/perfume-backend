@@ -5,7 +5,7 @@ import java.util.Map;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
-/** 향수 상세 조회 기본 정보, 노트(탑/미들/베이스), 어코드 목록 및 비율, 리뷰 통계를 포함 */
+/** 향수 상세 조회 응답. 기본 정보, 노트, 어코드, 리뷰 기반 통계를 함께 제공한다. */
 @Getter
 @AllArgsConstructor
 public class PerfumeDetailResponse {
@@ -33,18 +33,18 @@ public class PerfumeDetailResponse {
   /** 리뷰 수 */
   private long reviewCount;
 
-  /** 탑/미들/베이스 노트 */
+  /** 탑/미들/베이스로 그룹화된 노트 목록 */
   private NoteGroupDto notes;
 
-  /** 어코드 목록 (이름 + 비율) */
+  /** 향수의 주요 어코드 목록과 각 어코드의 비율 */
   private List<AccordDto> accords;
 
-  /** 만족도 통계 (1~5, 비율) */
+  /** 만족도 통계. 키는 1~5점, 값은 전체 리뷰 대비 비율이다. */
   private Map<Integer, Integer> satisfaction;
 
-  /** 지속력 통계 (1~3, 비율) */
+  /** 지속력 통계. 키는 1~3점, 값은 지속력 응답 리뷰 대비 비율이다. */
   private Map<Integer, Integer> longevity;
 
-  /** 계절 통계 (봄/여름/가을/겨울, 비율) */
+  /** 계절 통계. 키는 봄/여름/가을/겨울, 값은 계절 응답 리뷰 대비 비율이다. */
   private Map<String, Integer> seasons;
 }
