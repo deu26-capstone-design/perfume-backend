@@ -10,8 +10,6 @@ import lombok.Getter;
 @Getter
 public class ReviewRequest {
 
-  @NotNull private Integer userId;
-
   @NotNull
   @Min(1)
   @Max(5)
@@ -21,6 +19,7 @@ public class ReviewRequest {
   @Max(3)
   private Integer longevity;
 
+  @Size(max = 4)
   private List<String> seasons;
 
   @Size(max = 5)

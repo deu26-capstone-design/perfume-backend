@@ -2,6 +2,7 @@ package kim.biryeong.perfume.review;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import kim.biryeong.perfume.perfume.Perfume;
 import kim.biryeong.perfume.user.User;
 import lombok.AllArgsConstructor;
@@ -48,6 +49,6 @@ public class Review {
 
   @PrePersist
   protected void onCreate() {
-    createdAt = LocalDateTime.now();
+    createdAt = LocalDateTime.now(ZoneId.systemDefault());
   }
 }

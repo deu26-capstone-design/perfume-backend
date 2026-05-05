@@ -24,10 +24,17 @@ public class ReviewController {
     return reviewService.getReviews(id, page, size);
   }
 
+  /**
+   * Temporary service-prep contract: userId is accepted as a request parameter only until
+   * authentication is integrated and the authenticated subject can be passed into the service. This
+   * is not production authorization.
+   */
   @PostMapping("/{id}/reviews")
   @ResponseStatus(HttpStatus.CREATED)
   public void createReview(
-      @PathVariable @Min(1) Long id, @RequestBody @Valid ReviewRequest request) {
-    reviewService.createReview(id, request);
+      @PathVariable @Min(1) Long id,
+      @RequestParam @Min(1) Integer userId,
+      @RequestBody @Valid ReviewRequest request) {
+    reviewService.createReview(id, userId, request);
   }
 }

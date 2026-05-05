@@ -24,8 +24,9 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
   @Query(
       value =
-          "SELECT r FROM Review r JOIN FETCH r.user WHERE r.perfume.id = :perfumeId ORDER BY r.createdAt DESC",
+          "SELECT r FROM Review r JOIN FETCH r.user WHERE r.perfume.id = :perfumeId"
+              + " ORDER BY r.createdAt DESC, r.id DESC",
       countQuery = "SELECT COUNT(r) FROM Review r WHERE r.perfume.id = :perfumeId")
-  Page<Review> findByPerfumeIdOrderByCreatedAtDesc(
+  Page<Review> findByPerfumeIdOrderByCreatedAtDescIdDesc(
       @Param("perfumeId") Long perfumeId, Pageable pageable);
 }

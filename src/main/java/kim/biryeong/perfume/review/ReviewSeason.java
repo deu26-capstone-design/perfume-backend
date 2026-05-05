@@ -21,7 +21,7 @@ public class ReviewSeason {
   private Review review;
 
   @Id
-  @Enumerated(EnumType.STRING)
+  @Convert(converter = SeasonConverter.class)
   @Column(columnDefinition = "ENUM('봄','여름','가을','겨울')", nullable = false)
   private Season season;
 }

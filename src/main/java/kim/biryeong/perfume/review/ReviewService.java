@@ -1,6 +1,9 @@
 package kim.biryeong.perfume.review;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import kim.biryeong.perfume.perfume.Perfume;
 import kim.biryeong.perfume.perfume.PerfumeRepository;
@@ -27,10 +30,13 @@ public class ReviewService {
   private final ReviewScentRepository reviewScentRepository;
 
   @Transactional
-  public void createReview(Long perfumeId, ReviewRequest request) {
+  public void createReview(Long perfumeId, Integer userId, ReviewRequest request) {
     if (request.getDisclaimerAgreed() == null || !request.getDisclaimerAgreed()) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "면책 조항에 동의해야 합니다.");
     }
+
+    List<Season> seasonEnums = toSeasonEnums(request.getSeasons());
+    List<ScentName> scentEnums = toScentEnums(request.getScents());
 
     Perfume perfume =
         perfumeRepository
@@ -39,11 +45,11 @@ public class ReviewService {
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 향수 ID입니다."));
     User user =
         userRepository
-            .findById(request.getUserId())
+            .findById(userId)
             .orElseThrow(
                 () -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 유저 ID입니다."));
 
-    if (reviewRepository.existsByPerfumeIdAndUserId(perfumeId, request.getUserId())) {
+    if (reviewRepository.existsByPerfumeIdAndUserId(perfumeId, userId)) {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 작성한 리뷰가 있습니다.");
     }
 
@@ -59,23 +65,15 @@ public class ReviewService {
             null);
     reviewRepository.save(review);
 
-    if (request.getSeasons() != null) {
-      List<Season> seasonEnums = request.getSeasons().stream().map(Season::from).toList();
-      if (seasonEnums.size() != new HashSet<>(seasonEnums).size()) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "중복된 계절 값이 있습니다.");
-      }
+    if (!seasonEnums.isEmpty()) {
       List<ReviewSeason> seasons =
-          seasonEnums.stream().map(s -> new ReviewSeason(review, s)).toList();
+          seasonEnums.stream().map(season -> new ReviewSeason(review, season)).toList();
       reviewSeasonRepository.saveAll(seasons);
     }
 
-    if (request.getScents() != null) {
-      List<ScentName> scentEnums = request.getScents().stream().map(ScentName::from).toList();
-      if (scentEnums.size() != new HashSet<>(scentEnums).size()) {
-        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "중복된 향 값이 있습니다.");
-      }
+    if (!scentEnums.isEmpty()) {
       List<ReviewScent> scents =
-          scentEnums.stream().map(s -> new ReviewScent(null, review, s)).toList();
+          scentEnums.stream().map(scent -> new ReviewScent(null, review, scent)).toList();
       reviewScentRepository.saveAll(scents);
     }
   }
@@ -98,7 +96,7 @@ public class ReviewService {
 
     PageRequest pageable = PageRequest.of(page, size);
     Page<Review> reviewPage =
-        reviewRepository.findByPerfumeIdOrderByCreatedAtDesc(perfumeId, pageable);
+        reviewRepository.findByPerfumeIdOrderByCreatedAtDescIdDesc(perfumeId, pageable);
 
     List<Long> reviewIds =
         reviewPage.getContent().stream().map(Review::getId).collect(Collectors.toList());
@@ -109,8 +107,10 @@ public class ReviewService {
             : reviewSeasonRepository.findByReviewIds(reviewIds).stream()
                 .collect(
                     Collectors.groupingBy(
-                        rs -> rs.getReview().getId(),
-                        Collectors.mapping(rs -> rs.getSeason().name(), Collectors.toList())));
+                        reviewSeason -> reviewSeason.getReview().getId(),
+                        Collectors.mapping(
+                            reviewSeason -> reviewSeason.getSeason().getValue(),
+                            Collectors.toList())));
 
     Map<Long, List<String>> scentsByReview =
         reviewIds.isEmpty()
@@ -118,27 +118,50 @@ public class ReviewService {
             : reviewScentRepository.findByReviewIds(reviewIds).stream()
                 .collect(
                     Collectors.groupingBy(
-                        rs -> rs.getReview().getId(),
+                        reviewScent -> reviewScent.getReview().getId(),
                         Collectors.mapping(
-                            rs -> rs.getScentName().getValue(), Collectors.toList())));
+                            reviewScent -> reviewScent.getScentName().getValue(),
+                            Collectors.toList())));
 
     List<ReviewItemDto> dtos =
         reviewPage.getContent().stream()
             .map(
-                r ->
+                review ->
                     new ReviewItemDto(
-                        r.getUser().getNickname(),
-                        r.getUser().getProfileImageUrl(),
-                        r.getSatisfaction(),
-                        r.getLongevity(),
-                        seasonsByReview.getOrDefault(r.getId(), List.of()),
-                        scentsByReview.getOrDefault(r.getId(), List.of()),
-                        r.getComment(),
-                        r.getCreatedAt().toLocalDate()))
+                        review.getUser().getNickname(),
+                        review.getUser().getProfileImageUrl(),
+                        review.getSatisfaction(),
+                        review.getLongevity(),
+                        seasonsByReview.getOrDefault(review.getId(), List.of()),
+                        scentsByReview.getOrDefault(review.getId(), List.of()),
+                        review.getComment(),
+                        review.getCreatedAt().toLocalDate()))
             .collect(Collectors.toList());
 
     Page<ReviewItemDto> dtoPage = new PageImpl<>(dtos, pageable, reviewPage.getTotalElements());
     return new ReviewListResponse(dtoPage);
+  }
+
+  private List<Season> toSeasonEnums(List<String> seasonValues) {
+    if (seasonValues == null) {
+      return List.of();
+    }
+    List<Season> seasons = seasonValues.stream().map(Season::from).toList();
+    if (seasons.size() != new HashSet<>(seasons).size()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "중복된 계절 값이 있습니다.");
+    }
+    return seasons;
+  }
+
+  private List<ScentName> toScentEnums(List<String> scentValues) {
+    if (scentValues == null) {
+      return List.of();
+    }
+    List<ScentName> scents = scentValues.stream().map(ScentName::from).toList();
+    if (scents.size() != new HashSet<>(scents).size()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "중복된 향 값이 있습니다.");
+    }
+    return scents;
   }
 
   private StatsDto buildStats(List<Review> reviews, List<ReviewSeason> seasons, long reviewCount) {
@@ -146,18 +169,26 @@ public class ReviewService {
     Map<Integer, Integer> longevityMap = new LinkedHashMap<>();
     Map<String, Integer> seasonMap = new LinkedHashMap<>();
 
-    for (int i = 1; i <= 5; i++) satisfactionMap.put(i, 0);
-    for (int i = 1; i <= 3; i++) longevityMap.put(i, 0);
-    for (String s : List.of("봄", "여름", "가을", "겨울")) seasonMap.put(s, 0);
+    for (int i = 1; i <= 5; i++) {
+      satisfactionMap.put(i, 0);
+    }
+    for (int i = 1; i <= 3; i++) {
+      longevityMap.put(i, 0);
+    }
+    for (Season season : Season.values()) {
+      seasonMap.put(season.getValue(), 0);
+    }
 
-    if (reviewCount == 0) return new StatsDto(satisfactionMap, longevityMap, seasonMap);
+    if (reviewCount == 0) {
+      return new StatsDto(satisfactionMap, longevityMap, seasonMap);
+    }
 
     reviews.stream()
         .collect(Collectors.groupingBy(Review::getSatisfaction, Collectors.counting()))
         .forEach((k, v) -> satisfactionMap.put(k, (int) Math.round(v * 100.0 / reviewCount)));
 
     List<Review> reviewsWithLongevity =
-        reviews.stream().filter(r -> r.getLongevity() != null).toList();
+        reviews.stream().filter(review -> review.getLongevity() != null).toList();
     long longevityCount = reviewsWithLongevity.size();
     if (longevityCount > 0) {
       reviewsWithLongevity.stream()
@@ -166,10 +197,12 @@ public class ReviewService {
     }
 
     long seasonRespondentCount =
-        seasons.stream().map(rs -> rs.getReview().getId()).distinct().count();
+        seasons.stream().map(reviewSeason -> reviewSeason.getReview().getId()).distinct().count();
     if (seasonRespondentCount > 0) {
       seasons.stream()
-          .collect(Collectors.groupingBy(rs -> rs.getSeason().name(), Collectors.counting()))
+          .collect(
+              Collectors.groupingBy(
+                  reviewSeason -> reviewSeason.getSeason().getValue(), Collectors.counting()))
           .forEach((k, v) -> seasonMap.put(k, (int) Math.round(v * 100.0 / seasonRespondentCount)));
     }
 
