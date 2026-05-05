@@ -41,3 +41,7 @@ out/
 .LSOverride
 
 mysql_data/
+
+.env
+*.env
+src/main/resources/.env
