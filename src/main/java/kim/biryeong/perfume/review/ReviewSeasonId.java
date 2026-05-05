@@ -10,5 +10,5 @@ import lombok.NoArgsConstructor;
 @EqualsAndHashCode
 public class ReviewSeasonId implements Serializable {
   private Long review;
-  private Season season;
+  private String season;
 }

@@ -1,18 +1,12 @@
 package kim.biryeong.perfume.review;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
 @Entity
 @Table(name = "review_seasons")
 @IdClass(ReviewSeasonId.class)
-@Getter
-@Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class ReviewSeason {
 
   @Id
@@ -21,7 +15,27 @@ public class ReviewSeason {
   private Review review;
 
   @Id
-  @Convert(converter = SeasonConverter.class)
   @Column(columnDefinition = "ENUM('봄','여름','가을','겨울')", nullable = false)
-  private Season season;
+  private String season;
+
+  public ReviewSeason(Review review, Season season) {
+    this.review = review;
+    setSeason(season);
+  }
+
+  public Review getReview() {
+    return review;
+  }
+
+  public void setReview(Review review) {
+    this.review = review;
+  }
+
+  public Season getSeason() {
+    return Season.from(season);
+  }
+
+  public void setSeason(Season season) {
+    this.season = season == null ? null : season.getValue();
+  }
 }
