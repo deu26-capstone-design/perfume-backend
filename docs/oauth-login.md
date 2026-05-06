@@ -11,7 +11,7 @@ https://thescentlab.vercel.app/
 백엔드는 별도 API 도메인으로 호출한다고 가정합니다.
 
 ```text
-https://api.example.com
+https://perfume.biryeong.kim
 ```
 
 프론트 코드에서는 아래 값만 실제 API 도메인으로 바꿔서 사용하면 됩니다.
@@ -269,7 +269,7 @@ await apiFetch(`/api/perfumes/${perfumeId}/reviews`, {
 Vercel 프로젝트에는 API 도메인만 넣으면 됩니다.
 
 ```text
-NEXT_PUBLIC_API_BASE_URL=https://api.example.com
+NEXT_PUBLIC_API_BASE_URL=https://perfume.biryeong.kim
 ```
 
 프론트에서 `https://thescentlab.vercel.app/api/...`로 프록시하지 않고 API 도메인을 직접 호출하는 구조입니다.
@@ -309,21 +309,21 @@ NAVER_CLIENT_SECRET=...
 
 ### 3. Nginx HTTPS 프록시 설정
 
-API 도메인 예시를 `api.example.com`이라고 하면 Nginx는 백엔드 앱의 `localhost:8080`으로 프록시합니다.
+API 도메인이 `perfume.biryeong.kim`이면 Nginx는 백엔드 앱의 `localhost:8080`으로 프록시합니다.
 
 ```nginx
 server {
     listen 80;
-    server_name api.example.com;
+    server_name perfume.biryeong.kim;
     return 301 https://$host$request_uri;
 }
 
 server {
     listen 443 ssl;
-    server_name api.example.com;
+    server_name perfume.biryeong.kim;
 
-    ssl_certificate /etc/letsencrypt/live/api.example.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
+    ssl_certificate /etc/letsencrypt/live/perfume.biryeong.kim/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/perfume.biryeong.kim/privkey.pem;
 
     location / {
         proxy_pass http://127.0.0.1:8080;
@@ -343,8 +343,8 @@ CORS는 Spring 백엔드가 처리하므로 Nginx에서 `Access-Control-Allow-Or
 Google Cloud Console과 Naver Developers의 redirect URI에 백엔드 콜백 주소를 등록합니다.
 
 ```text
-https://api.example.com/login/oauth2/code/google
-https://api.example.com/login/oauth2/code/naver
+https://perfume.biryeong.kim/login/oauth2/code/google
+https://perfume.biryeong.kim/login/oauth2/code/naver
 ```
 
 프론트 주소가 아니라 백엔드 API 도메인입니다.
@@ -354,9 +354,9 @@ https://api.example.com/login/oauth2/code/naver
 백엔드 앱과 Nginx를 재시작한 뒤 공개 API와 CORS preflight를 확인합니다.
 
 ```bash
-curl -i https://api.example.com/api/perfumes?page=0&size=1
+curl -i https://perfume.biryeong.kim/api/perfumes?page=0&size=1
 
-curl -i -X OPTIONS https://api.example.com/api/auth/me \
+curl -i -X OPTIONS https://perfume.biryeong.kim/api/auth/me \
   -H "Origin: https://thescentlab.vercel.app" \
   -H "Access-Control-Request-Method: GET"
 ```
