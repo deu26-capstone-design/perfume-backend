@@ -9,6 +9,8 @@ public class AuthCookieProperties {
 
   private boolean secure;
 
+  private String sameSite = "Lax";
+
   public String getName() {
     return name;
   }
@@ -23,5 +25,13 @@ public class AuthCookieProperties {
 
   public void setSecure(boolean secure) {
     this.secure = secure;
+  }
+
+  public String getSameSite() {
+    return sameSite;
+  }
+
+  public void setSameSite(String sameSite) {
+    this.sameSite = sameSite;
   }
 }

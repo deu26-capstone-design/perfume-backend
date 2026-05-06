@@ -33,10 +33,17 @@ public class AuthCookieFactory {
   }
 
   public ResponseCookie createCsrfTokenCookie() {
+    return createCsrfTokenCookie(createCsrfTokenValue());
+  }
+
+  public ResponseCookie createCsrfTokenCookie(String token) {
+    return csrfCookie(token).maxAge(jwtProperties.getAccessTokenValidity()).build();
+  }
+
+  public String createCsrfTokenValue() {
     byte[] tokenBytes = new byte[CSRF_TOKEN_BYTES];
     secureRandom.nextBytes(tokenBytes);
-    String token = Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
-    return csrfCookie(token).maxAge(jwtProperties.getAccessTokenValidity()).build();
+    return Base64.getUrlEncoder().withoutPadding().encodeToString(tokenBytes);
   }
 
   public ResponseCookie expireCsrfTokenCookie() {
@@ -47,7 +54,7 @@ public class AuthCookieFactory {
     return ResponseCookie.from(cookieProperties.getName(), value)
         .httpOnly(true)
         .secure(cookieProperties.isSecure())
-        .sameSite("Lax")
+        .sameSite(cookieProperties.getSameSite())
         .path("/");
   }
 
@@ -55,7 +62,7 @@ public class AuthCookieFactory {
     return ResponseCookie.from(CSRF_COOKIE_NAME, value)
         .httpOnly(false)
         .secure(cookieProperties.isSecure())
-        .sameSite("Lax")
+        .sameSite(cookieProperties.getSameSite())
         .path("/");
   }
 }

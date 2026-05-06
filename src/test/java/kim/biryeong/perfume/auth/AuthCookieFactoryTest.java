@@ -28,6 +28,23 @@ class AuthCookieFactoryTest {
   }
 
   @Test
+  void createAccessTokenCookieUsesConfiguredSameSiteAndSecureAttributes() {
+    AuthCookieProperties cookieProperties = new AuthCookieProperties();
+    cookieProperties.setName("PERFUME_ACCESS_TOKEN");
+    cookieProperties.setSecure(true);
+    cookieProperties.setSameSite("None");
+    JwtProperties jwtProperties = new JwtProperties();
+    jwtProperties.setAccessTokenValidity(Duration.ofHours(1));
+    AuthCookieFactory cookieFactory = new AuthCookieFactory(cookieProperties, jwtProperties);
+
+    String cookie = cookieFactory.createAccessTokenCookie("jwt-token").toString();
+
+    assertThat(cookie).contains("PERFUME_ACCESS_TOKEN=jwt-token");
+    assertThat(cookie).contains("Secure");
+    assertThat(cookie).contains("SameSite=None");
+  }
+
+  @Test
   void createCsrfTokenCookieCreatesReadableDoubleSubmitCookie() {
     AuthCookieProperties cookieProperties = new AuthCookieProperties();
     JwtProperties jwtProperties = new JwtProperties();
@@ -41,6 +58,18 @@ class AuthCookieFactoryTest {
     assertThat(cookie).contains("Path=/");
     assertThat(cookie).doesNotContain("HttpOnly");
     assertThat(cookie).contains("SameSite=Lax");
+  }
+
+  @Test
+  void createCsrfTokenCookieUsesProvidedTokenValue() {
+    AuthCookieProperties cookieProperties = new AuthCookieProperties();
+    JwtProperties jwtProperties = new JwtProperties();
+    jwtProperties.setAccessTokenValidity(Duration.ofHours(1));
+    AuthCookieFactory cookieFactory = new AuthCookieFactory(cookieProperties, jwtProperties);
+
+    String cookie = cookieFactory.createCsrfTokenCookie("csrf-token").toString();
+
+    assertThat(cookie).contains("XSRF-TOKEN=csrf-token");
   }
 
   @Test

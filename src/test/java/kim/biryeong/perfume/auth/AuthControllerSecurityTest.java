@@ -1,5 +1,6 @@
 package kim.biryeong.perfume.auth;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -30,6 +31,7 @@ import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -177,6 +179,28 @@ class AuthControllerSecurityTest {
     mockMvc
         .perform(get("/api/auth/me").cookie(invalidSubjectAuthCookie()))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void csrfIssuesTokenAndReadableCookieForAuthenticatedCookieRequest() throws Exception {
+    MvcResult result =
+        mockMvc
+            .perform(get("/api/auth/csrf").cookie(authCookie()))
+            .andExpect(status().isOk())
+            .andExpect(cookie().exists("XSRF-TOKEN"))
+            .andExpect(cookie().httpOnly("XSRF-TOKEN", false))
+            .andExpect(jsonPath("$.csrfToken").isString())
+            .andReturn();
+
+    Cookie csrfCookie = result.getResponse().getCookie("XSRF-TOKEN");
+    assertThat(csrfCookie).isNotNull();
+    assertThat(result.getResponse().getContentAsString())
+        .contains("\"csrfToken\":\"" + csrfCookie.getValue() + "\"");
+  }
+
+  @Test
+  void csrfRejectsMissingAuthentication() throws Exception {
+    mockMvc.perform(get("/api/auth/csrf")).andExpect(status().isUnauthorized());
   }
 
   @Test

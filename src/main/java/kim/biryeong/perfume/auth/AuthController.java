@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import kim.biryeong.perfume.auth.cookie.AuthCookieFactory;
 import kim.biryeong.perfume.auth.dto.AuthUserResponse;
 import kim.biryeong.perfume.auth.dto.CompleteProfileRequest;
+import kim.biryeong.perfume.auth.dto.CsrfTokenResponse;
 import kim.biryeong.perfume.auth.dto.LoginRequest;
 import kim.biryeong.perfume.auth.dto.SignupRequest;
 import kim.biryeong.perfume.auth.jwt.JwtService;
@@ -77,6 +78,25 @@ public class AuthController {
   public AuthUserResponse me(Authentication authentication) {
     return AuthUserResponse.from(
         authService.getCurrentUser(AuthenticatedUserIds.currentUserId(authentication)));
+  }
+
+  /**
+   * 현재 JWT 쿠키 인증에 연결할 CSRF 토큰을 새로 발급합니다.
+   *
+   * <p>프론트엔드가 API와 다른 사이트에서 호스팅되는 경우 API 도메인의 쿠키를 직접 읽을 수 없으므로, 이 응답 본문의 {@code csrfToken} 값을 이후 상태
+   * 변경 요청의 {@code X-XSRF-TOKEN} 헤더로 전송해야 합니다.
+   *
+   * @param response CSRF 쿠키를 추가할 서블릿 응답
+   * @param authentication JWT subject를 포함한 Spring Security 인증 객체
+   * @return 새 CSRF 토큰과 같은 값을 담은 {@code XSRF-TOKEN} 쿠키
+   */
+  @GetMapping("/csrf")
+  public CsrfTokenResponse csrf(HttpServletResponse response, Authentication authentication) {
+    AuthenticatedUserIds.currentUserId(authentication);
+    String csrfToken = authCookieFactory.createCsrfTokenValue();
+    response.addHeader(
+        HttpHeaders.SET_COOKIE, authCookieFactory.createCsrfTokenCookie(csrfToken).toString());
+    return new CsrfTokenResponse(csrfToken);
   }
 
   /**
