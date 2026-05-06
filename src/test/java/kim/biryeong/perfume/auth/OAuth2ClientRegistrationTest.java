@@ -12,14 +12,13 @@ import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
 @SpringBootTest
 class OAuth2ClientRegistrationTest {
 
-	@Autowired private ClientRegistrationRepository clientRegistrationRepository;
+  @Autowired private ClientRegistrationRepository clientRegistrationRepository;
 
-	@Test
-	void naverUsesClientSecretPostForTokenRequest() {
-		ClientRegistration registration =
-				clientRegistrationRepository.findByRegistrationId("naver");
+  @Test
+  void naverUsesClientSecretPostForTokenRequest() {
+    ClientRegistration registration = clientRegistrationRepository.findByRegistrationId("naver");
 
-		assertThat(registration.getClientAuthenticationMethod())
-				.isEqualTo(ClientAuthenticationMethod.CLIENT_SECRET_POST);
-	}
+    assertThat(registration.getClientAuthenticationMethod())
+        .isEqualTo(ClientAuthenticationMethod.CLIENT_SECRET_POST);
+  }
 }

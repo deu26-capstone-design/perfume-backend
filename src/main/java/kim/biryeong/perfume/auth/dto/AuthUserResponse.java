@@ -2,7 +2,7 @@ package kim.biryeong.perfume.auth.dto;
 
 import java.time.LocalDate;
 import kim.biryeong.perfume.domain.OAuthProvider;
-import kim.biryeong.perfume.domain.User;
+import kim.biryeong.perfume.user.domain.User;
 
 /**
  * 인증 API가 반환하는 사용자 응답입니다.
@@ -20,26 +20,26 @@ import kim.biryeong.perfume.domain.User;
  * @param profileCompleted 모든 필수 프로필 필드가 존재하는지 여부
  */
 public record AuthUserResponse(
-		Integer userId,
-		String email,
-		String name,
-		String nickname,
-		String gender,
-		LocalDate birthDate,
-		String phoneNumber,
-		OAuthProvider oauthProvider,
-		boolean profileCompleted) {
+    Integer userId,
+    String email,
+    String name,
+    String nickname,
+    String gender,
+    LocalDate birthDate,
+    String phoneNumber,
+    OAuthProvider oauthProvider,
+    boolean profileCompleted) {
 
-	public static AuthUserResponse from(User user) {
-		return new AuthUserResponse(
-				user.getUserId(),
-				user.getEmail(),
-				user.getName(),
-				user.getNickname(),
-				user.getGender(),
-				user.getBirthDate(),
-				user.getPhoneNumber(),
-				user.getOauthProvider(),
-				user.isProfileCompleted());
-	}
+  public static AuthUserResponse from(User user) {
+    return new AuthUserResponse(
+        user.getUserId(),
+        user.getEmail(),
+        user.getName(),
+        user.getNickname(),
+        user.getGender(),
+        user.getBirthDate(),
+        user.getPhoneNumber(),
+        user.getOauthProvider(),
+        user.isProfileCompleted());
+  }
 }

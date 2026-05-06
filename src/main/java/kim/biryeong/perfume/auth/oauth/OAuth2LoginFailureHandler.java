@@ -13,27 +13,25 @@ import org.springframework.web.util.UriComponentsBuilder;
 @Component
 public class OAuth2LoginFailureHandler implements AuthenticationFailureHandler {
 
-	private final OAuth2RedirectProperties redirectProperties;
+  private final OAuth2RedirectProperties redirectProperties;
 
-	public OAuth2LoginFailureHandler(OAuth2RedirectProperties redirectProperties) {
-		this.redirectProperties = redirectProperties;
-	}
+  public OAuth2LoginFailureHandler(OAuth2RedirectProperties redirectProperties) {
+    this.redirectProperties = redirectProperties;
+  }
 
-	@Override
-	public void onAuthenticationFailure(
-			HttpServletRequest request,
-			HttpServletResponse response,
-			AuthenticationException exception)
-			throws IOException, ServletException {
-		String errorCode = "oauth_login_failed";
-		if (exception instanceof OAuth2AuthenticationException oauthException) {
-			errorCode = oauthException.getError().getErrorCode();
-		}
-		String redirectUri =
-				UriComponentsBuilder.fromUriString(redirectProperties.getFailureRedirectUri())
-						.queryParam("error", errorCode)
-						.build()
-						.toUriString();
-		response.sendRedirect(redirectUri);
-	}
+  @Override
+  public void onAuthenticationFailure(
+      HttpServletRequest request, HttpServletResponse response, AuthenticationException exception)
+      throws IOException, ServletException {
+    String errorCode = "oauth_login_failed";
+    if (exception instanceof OAuth2AuthenticationException oauthException) {
+      errorCode = oauthException.getError().getErrorCode();
+    }
+    String redirectUri =
+        UriComponentsBuilder.fromUriString(redirectProperties.getFailureRedirectUri())
+            .queryParam("error", errorCode)
+            .build()
+            .toUriString();
+    response.sendRedirect(redirectUri);
+  }
 }

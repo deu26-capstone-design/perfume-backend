@@ -2,6 +2,7 @@ package kim.biryeong.perfume.user.domain;
 
 import jakarta.persistence.*;
 import java.time.LocalDate;
+import kim.biryeong.perfume.domain.OAuthProvider;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -18,24 +19,33 @@ public class User {
   @Column(nullable = false, unique = true, length = 100)
   private String email;
 
-  @Column(nullable = false, length = 255)
+  @Column(length = 255)
   private String password;
 
-  @Column(nullable = false, length = 24)
+  @Column(length = 24)
   private String name;
 
-  @Column(nullable = false, unique = true, length = 24)
+  @Column(unique = true, length = 24)
   private String nickname;
 
-  @Column(nullable = false, length = 1)
+  @Column(length = 1)
   private String gender;
 
-  @Column(nullable = false)
   private LocalDate birthDate;
 
-  @Column(nullable = false, length = 15)
+  @Column(length = 15)
   private String phoneNumber;
 
   @Column(length = 512)
   private String profileImageUrl;
+
+  @Enumerated(EnumType.STRING)
+  @Column(length = 24)
+  private OAuthProvider oauthProvider;
+
+  @Column(length = 128)
+  private String oauthProviderId;
+
+  @Column(nullable = false)
+  private boolean profileCompleted = true;
 }

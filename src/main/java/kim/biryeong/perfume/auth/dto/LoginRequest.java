@@ -13,5 +13,4 @@ import jakarta.validation.constraints.Size;
  * @param password 저장된 비밀번호 해시와 비교할 원문 비밀번호
  */
 public record LoginRequest(
-		@NotBlank @Email @Size(max = 100) String email,
-		@NotBlank @Size(max = 72) String password) {}
+    @NotBlank @Email @Size(max = 100) String email, @NotBlank @Size(max = 72) String password) {}

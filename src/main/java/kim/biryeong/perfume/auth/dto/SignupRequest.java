@@ -21,10 +21,10 @@ import java.time.LocalDate;
  * @param phoneNumber 사용자 전화번호이며 최대 15자까지 허용됩니다
  */
 public record SignupRequest(
-		@NotBlank @Email @Size(max = 100) String email,
-		@NotBlank @Size(min = 10, max = 72) String password,
-		@NotBlank @Size(max = 24) String name,
-		@NotBlank @Size(max = 24) String nickname,
-		@NotBlank @Size(max = 1) String gender,
-		@NotNull @Past LocalDate birthDate,
-		@NotBlank @Size(max = 15) String phoneNumber) {}
+    @NotBlank @Email @Size(max = 100) String email,
+    @NotBlank @Size(min = 10, max = 72) String password,
+    @NotBlank @Size(max = 24) String name,
+    @NotBlank @Size(max = 24) String nickname,
+    @NotBlank @Size(max = 1) String gender,
+    @NotNull @Past LocalDate birthDate,
+    @NotBlank @Size(max = 15) String phoneNumber) {}

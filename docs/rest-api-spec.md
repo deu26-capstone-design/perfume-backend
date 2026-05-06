@@ -19,9 +19,20 @@
 
 | HTTP status | 발생 조건 | 응답 예시 |
 | --- | --- | --- |
-| `400 Bad Request` | path/query/body 검증 실패, 잘못된 enum 값, 필수 query parameter 누락, query parameter 타입 불일치 | `{ "message": "userId 요청 파라미터는 필수입니다." }` |
+| `400 Bad Request` | path/query/body 검증 실패, 잘못된 enum 값, 필수 query parameter 누락, query parameter 타입 불일치 | `{ "message": "page 요청 파라미터 형식이 올바르지 않습니다." }` |
+| `401 Unauthorized` | 인증이 필요한 API에 유효한 JWT가 없거나 JWT subject가 올바르지 않음 | 인증 실패 응답 |
+| `403 Forbidden` | JWT 쿠키 기반 상태 변경 요청에서 CSRF 토큰이 없거나 일치하지 않음 | CSRF 실패 응답 |
 | `404 Not Found` | 존재하지 않는 향수 또는 사용자 조회 | `{ "message": "존재하지 않는 향수 ID입니다." }` |
 | `409 Conflict` | 중복 리뷰, 중복 위시리스트, DB unique constraint 충돌 | `{ "message": "이미 작성한 리뷰가 있습니다." }` |
+
+## 인증
+
+- 공개 조회 API는 인증 없이 호출할 수 있습니다.
+- `/api/auth/me`, `/api/auth/me/profile`, `/api/auth/logout`, 리뷰 작성, 위시리스트 API는 JWT 인증이 필요합니다.
+- JWT는 `Authorization: Bearer {token}` 헤더 또는 `PERFUME_ACCESS_TOKEN` HttpOnly 쿠키로 전달합니다.
+- 회원가입, 로그인, OAuth 로그인 성공 응답은 `PERFUME_ACCESS_TOKEN`과 함께 브라우저에서 읽을 수 있는 `XSRF-TOKEN` 쿠키를 발급합니다.
+- JWT 쿠키로 `POST`, `DELETE`, `PATCH` 요청을 보내는 경우 `XSRF-TOKEN` 쿠키 값과 같은 값을 `X-XSRF-TOKEN` 헤더에도 전달해야 합니다.
+- 인증된 사용자 ID는 JWT subject에서 결정되며, 클라이언트가 `userId` query parameter로 지정할 수 없습니다.
 
 ## 값 목록
 
@@ -306,24 +317,18 @@ GET /api/perfumes/{id}/reviews
 ### 리뷰 작성
 
 ```http
-POST /api/perfumes/{id}/reviews?userId={userId}
+POST /api/perfumes/{id}/reviews
 ```
 
 특정 향수에 리뷰를 작성합니다.
 
-현재는 인증 통합 전 준비 단계로 `userId`를 query parameter로 받습니다. 이 값은 운영 수준의 authorization이 아니며, 인증 주체가 연결되면 제거될 임시 계약입니다.
+리뷰 작성자는 JWT subject의 현재 인증 사용자 ID로 결정됩니다.
 
 #### Path parameters
 
 | 이름 | 타입 | 검증 | 설명 |
 | --- | --- | --- | --- |
 | `id` | number | `1` 이상 | 리뷰를 작성할 향수 ID |
-
-#### Query parameters
-
-| 이름 | 타입 | 필수 | 검증 | 설명 |
-| --- | --- | --- | --- | --- |
-| `userId` | integer | yes | `1` 이상 | 리뷰 작성자 ID. 인증 통합 전 임시 입력값 |
 
 #### Request body
 
@@ -361,8 +366,10 @@ POST /api/perfumes/{id}/reviews?userId={userId}
 | `400 Bad Request` | 유효하지 않은 향 값 | `유효하지 않은 향 값입니다: {value}` |
 | `400 Bad Request` | 중복 계절 값 | `중복된 계절 값이 있습니다.` |
 | `400 Bad Request` | 중복 향 값 | `중복된 향 값이 있습니다.` |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `403 Forbidden` | JWT 쿠키 기반 요청에서 CSRF 토큰이 없거나 일치하지 않음 | CSRF 실패 응답 |
 | `404 Not Found` | 향수 ID가 존재하지 않음 | `존재하지 않는 향수 ID입니다.` |
-| `404 Not Found` | 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |
+| `404 Not Found` | JWT subject의 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |
 | `409 Conflict` | 같은 사용자가 같은 향수에 이미 리뷰를 작성함 | `이미 작성한 리뷰가 있습니다.` |
 
 ## Wishlist API
@@ -370,24 +377,18 @@ POST /api/perfumes/{id}/reviews?userId={userId}
 ### 위시리스트 추가
 
 ```http
-POST /api/wishlist/{perfumeId}?userId={userId}
+POST /api/wishlist/{perfumeId}
 ```
 
 사용자의 위시리스트에 향수를 추가합니다.
 
-현재는 인증 통합 전 준비 단계로 `userId`를 query parameter로 받습니다. 이 값은 운영 수준의 authorization이 아니며, 인증 주체가 연결되면 제거될 임시 계약입니다.
+위시리스트 소유자는 JWT subject의 현재 인증 사용자 ID로 결정됩니다.
 
 #### Path parameters
 
 | 이름 | 타입 | 검증 | 설명 |
 | --- | --- | --- | --- |
 | `perfumeId` | number | `1` 이상 | 추가할 향수 ID |
-
-#### Query parameters
-
-| 이름 | 타입 | 필수 | 검증 | 설명 |
-| --- | --- | --- | --- | --- |
-| `userId` | integer | yes | `1` 이상 | 위시리스트 소유자 ID. 인증 통합 전 임시 입력값 |
 
 #### Response `201 Created`
 
@@ -397,32 +398,28 @@ POST /api/wishlist/{perfumeId}?userId={userId}
 
 | HTTP status | 조건 | 대표 메시지 |
 | --- | --- | --- |
-| `400 Bad Request` | `perfumeId` 또는 `userId` 검증 실패 | 검증 메시지 |
+| `400 Bad Request` | `perfumeId` 검증 실패 | 검증 메시지 |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `403 Forbidden` | JWT 쿠키 기반 요청에서 CSRF 토큰이 없거나 일치하지 않음 | CSRF 실패 응답 |
 | `404 Not Found` | 향수 ID가 존재하지 않음 | `존재하지 않는 향수 ID입니다.` |
-| `404 Not Found` | 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |
+| `404 Not Found` | JWT subject의 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |
 | `409 Conflict` | 이미 위시리스트에 존재함 | `이미 위시리스트에 추가된 향수입니다.` |
 
 ### 위시리스트 삭제
 
 ```http
-DELETE /api/wishlist/{perfumeId}?userId={userId}
+DELETE /api/wishlist/{perfumeId}
 ```
 
 사용자의 위시리스트에서 향수를 제거합니다.
 
-현재는 인증 통합 전 준비 단계로 `userId`를 query parameter로 받습니다. 이 값은 운영 수준의 authorization이 아니며, 인증 주체가 연결되면 제거될 임시 계약입니다.
+위시리스트 소유자는 JWT subject의 현재 인증 사용자 ID로 결정됩니다.
 
 #### Path parameters
 
 | 이름 | 타입 | 검증 | 설명 |
 | --- | --- | --- | --- |
 | `perfumeId` | number | `1` 이상 | 삭제할 향수 ID |
-
-#### Query parameters
-
-| 이름 | 타입 | 필수 | 검증 | 설명 |
-| --- | --- | --- | --- | --- |
-| `userId` | integer | yes | `1` 이상 | 위시리스트 소유자 ID. 인증 통합 전 임시 입력값 |
 
 #### Response `204 No Content`
 
@@ -432,26 +429,22 @@ DELETE /api/wishlist/{perfumeId}?userId={userId}
 
 | HTTP status | 조건 | 대표 메시지 |
 | --- | --- | --- |
-| `400 Bad Request` | `perfumeId` 또는 `userId` 검증 실패 | 검증 메시지 |
+| `400 Bad Request` | `perfumeId` 검증 실패 | 검증 메시지 |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `403 Forbidden` | JWT 쿠키 기반 요청에서 CSRF 토큰이 없거나 일치하지 않음 | CSRF 실패 응답 |
 | `404 Not Found` | 향수 ID가 존재하지 않음 | `존재하지 않는 향수 ID입니다.` |
-| `404 Not Found` | 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |
+| `404 Not Found` | JWT subject의 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |
 | `404 Not Found` | 위시리스트에 없는 향수 삭제 요청 | `위시리스트에 없는 향수입니다.` |
 
 ### 위시리스트 조회
 
 ```http
-GET /api/wishlist?userId={userId}
+GET /api/wishlist
 ```
 
 사용자의 위시리스트에 등록된 향수 카드 목록을 조회합니다.
 
-현재는 인증 통합 전 준비 단계로 `userId`를 query parameter로 받습니다. 이 값은 운영 수준의 authorization이 아니며, 인증 주체가 연결되면 제거될 임시 계약입니다.
-
-#### Query parameters
-
-| 이름 | 타입 | 필수 | 검증 | 설명 |
-| --- | --- | --- | --- | --- |
-| `userId` | integer | yes | `1` 이상 | 위시리스트 소유자 ID. 인증 통합 전 임시 입력값 |
+위시리스트 소유자는 JWT subject의 현재 인증 사용자 ID로 결정됩니다.
 
 #### Response `200 OK`
 
@@ -477,5 +470,5 @@ GET /api/wishlist?userId={userId}
 
 | HTTP status | 조건 | 대표 메시지 |
 | --- | --- | --- |
-| `400 Bad Request` | `userId` 검증 실패 | 검증 메시지 |
-| `404 Not Found` | 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `404 Not Found` | JWT subject의 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |

@@ -7,7 +7,6 @@ import javax.crypto.spec.SecretKeySpec;
 import kim.biryeong.perfume.auth.cookie.AuthCookieProperties;
 import kim.biryeong.perfume.auth.cookie.CookieBearerTokenResolver;
 import kim.biryeong.perfume.auth.csrf.CookieCsrfEnforcementFilter;
-import kim.biryeong.perfume.auth.csrf.CsrfCookieFilter;
 import kim.biryeong.perfume.auth.jwt.JwtProperties;
 import kim.biryeong.perfume.auth.oauth.OAuth2LoginFailureHandler;
 import kim.biryeong.perfume.auth.oauth.OAuth2LoginSuccessHandler;
@@ -19,6 +18,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -29,9 +29,6 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
-import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
-import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -39,100 +36,84 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @Configuration
 @EnableWebSecurity
 @EnableConfigurationProperties({
-	JwtProperties.class,
-	AuthCookieProperties.class,
-	OAuth2RedirectProperties.class,
-	AppCorsProperties.class
+  JwtProperties.class,
+  AuthCookieProperties.class,
+  OAuth2RedirectProperties.class,
+  AppCorsProperties.class
 })
 public class SecurityConfig {
 
-	private static final int MIN_HMAC_SECRET_BYTES = 32;
+  private static final int MIN_HMAC_SECRET_BYTES = 32;
 
-	@Bean
-	public SecurityFilterChain securityFilterChain(
-			HttpSecurity http,
-			OAuth2LoginSuccessHandler successHandler,
-			OAuth2LoginFailureHandler failureHandler,
-			BearerTokenResolver bearerTokenResolver)
-			throws Exception {
-		CsrfTokenRequestAttributeHandler csrfRequestHandler =
-				new CsrfTokenRequestAttributeHandler();
+  @Bean
+  public SecurityFilterChain securityFilterChain(
+      HttpSecurity http,
+      OAuth2LoginSuccessHandler successHandler,
+      OAuth2LoginFailureHandler failureHandler,
+      BearerTokenResolver bearerTokenResolver)
+      throws Exception {
+    http.csrf(AbstractHttpConfigurer::disable)
+        .cors(Customizer.withDefaults())
+        .authorizeHttpRequests(
+            authorize ->
+                authorize
+                    .requestMatchers("/oauth2/**", "/login/oauth2/**", "/error")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/auth/signup", "/api/auth/login")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/accords")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.GET, "/api/perfumes", "/api/perfumes/**")
+                    .permitAll()
+                    .anyRequest()
+                    .authenticated())
+        .oauth2Login(oauth2 -> oauth2.successHandler(successHandler).failureHandler(failureHandler))
+        .oauth2ResourceServer(
+            oauth2 ->
+                oauth2.bearerTokenResolver(bearerTokenResolver).jwt(Customizer.withDefaults()));
+    http.addFilterAfter(new CookieCsrfEnforcementFilter(), BearerTokenAuthenticationFilter.class);
+    return http.build();
+  }
 
-		http.csrf(
-						csrf ->
-								csrf.csrfTokenRepository(
-												CookieCsrfTokenRepository.withHttpOnlyFalse())
-										.csrfTokenRequestHandler(csrfRequestHandler)
-										.ignoringRequestMatchers(
-												"/api/auth/signup", "/api/auth/login"))
-				.cors(Customizer.withDefaults())
-				.authorizeHttpRequests(
-						authorize ->
-								authorize
-										.requestMatchers("/oauth2/**", "/login/oauth2/**", "/error")
-										.permitAll()
-										.requestMatchers(
-												HttpMethod.POST,
-												"/api/auth/signup",
-												"/api/auth/login")
-										.permitAll()
-										.anyRequest()
-										.authenticated())
-				.oauth2Login(
-						oauth2 ->
-								oauth2.successHandler(successHandler)
-										.failureHandler(failureHandler))
-				.oauth2ResourceServer(
-						oauth2 ->
-								oauth2.bearerTokenResolver(bearerTokenResolver)
-										.jwt(Customizer.withDefaults()));
-		http.addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
-		http.addFilterAfter(
-				new CookieCsrfEnforcementFilter(), BearerTokenAuthenticationFilter.class);
-		return http.build();
-	}
+  @Bean
+  public BearerTokenResolver bearerTokenResolver(AuthCookieProperties cookieProperties) {
+    return new CookieBearerTokenResolver(cookieProperties.getName());
+  }
 
-	@Bean
-	public BearerTokenResolver bearerTokenResolver(AuthCookieProperties cookieProperties) {
-		return new CookieBearerTokenResolver(cookieProperties.getName());
-	}
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return new BCryptPasswordEncoder();
+  }
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+  @Bean
+  public JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
+    return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey));
+  }
 
-	@Bean
-	public JwtEncoder jwtEncoder(SecretKey jwtSecretKey) {
-		return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSecretKey));
-	}
+  @Bean
+  public JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
+    return NimbusJwtDecoder.withSecretKey(jwtSecretKey).macAlgorithm(MacAlgorithm.HS256).build();
+  }
 
-	@Bean
-	public JwtDecoder jwtDecoder(SecretKey jwtSecretKey) {
-		return NimbusJwtDecoder.withSecretKey(jwtSecretKey)
-				.macAlgorithm(MacAlgorithm.HS256)
-				.build();
-	}
+  @Bean
+  public SecretKey jwtSecretKey(JwtProperties jwtProperties) {
+    byte[] secretBytes = jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8);
+    if (secretBytes.length < MIN_HMAC_SECRET_BYTES) {
+      throw new IllegalStateException("JWT_SECRET must be at least 32 bytes for HS256");
+    }
+    return new SecretKeySpec(secretBytes, "HmacSHA256");
+  }
 
-	@Bean
-	public SecretKey jwtSecretKey(JwtProperties jwtProperties) {
-		byte[] secretBytes = jwtProperties.getSecret().getBytes(StandardCharsets.UTF_8);
-		if (secretBytes.length < MIN_HMAC_SECRET_BYTES) {
-			throw new IllegalStateException("JWT_SECRET must be at least 32 bytes for HS256");
-		}
-		return new SecretKeySpec(secretBytes, "HmacSHA256");
-	}
+  @Bean
+  public CorsConfigurationSource corsConfigurationSource(AppCorsProperties corsProperties) {
+    CorsConfiguration configuration = new CorsConfiguration();
+    configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
+    configuration.addAllowedHeader("*");
+    configuration.addAllowedMethod("*");
+    configuration.setAllowCredentials(true);
 
-	@Bean
-	public CorsConfigurationSource corsConfigurationSource(AppCorsProperties corsProperties) {
-		CorsConfiguration configuration = new CorsConfiguration();
-		configuration.setAllowedOrigins(corsProperties.getAllowedOrigins());
-		configuration.addAllowedHeader("*");
-		configuration.addAllowedMethod("*");
-		configuration.setAllowCredentials(true);
-
-		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-		source.registerCorsConfiguration("/**", configuration);
-		return source;
-	}
+    UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+    source.registerCorsConfiguration("/**", configuration);
+    return source;
+  }
 }

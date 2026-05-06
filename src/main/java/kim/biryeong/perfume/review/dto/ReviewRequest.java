@@ -7,7 +7,7 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.Getter;
 
-/** 리뷰 작성 요청 본문. 사용자 식별자는 인증 통합 전까지 query parameter로 별도 전달된다. */
+/** 리뷰 작성 요청 본문. 작성자 식별자는 JWT subject의 현재 인증 사용자 ID를 사용한다. */
 @Getter
 public class ReviewRequest {
 

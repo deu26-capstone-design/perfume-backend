@@ -5,23 +5,23 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @ConfigurationProperties(prefix = "app.auth.cookie")
 public class AuthCookieProperties {
 
-	private String name = "PERFUME_ACCESS_TOKEN";
+  private String name = "PERFUME_ACCESS_TOKEN";
 
-	private boolean secure;
+  private boolean secure;
 
-	public String getName() {
-		return name;
-	}
+  public String getName() {
+    return name;
+  }
 
-	public void setName(String name) {
-		this.name = name;
-	}
+  public void setName(String name) {
+    this.name = name;
+  }
 
-	public boolean isSecure() {
-		return secure;
-	}
+  public boolean isSecure() {
+    return secure;
+  }
 
-	public void setSecure(boolean secure) {
-		this.secure = secure;
-	}
+  public void setSecure(boolean secure) {
+    this.secure = secure;
+  }
 }

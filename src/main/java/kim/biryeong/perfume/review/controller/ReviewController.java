@@ -3,11 +3,13 @@ package kim.biryeong.perfume.review.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import kim.biryeong.perfume.auth.AuthenticatedUserIds;
 import kim.biryeong.perfume.review.dto.ReviewListResponse;
 import kim.biryeong.perfume.review.dto.ReviewRequest;
 import kim.biryeong.perfume.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,19 +41,18 @@ public class ReviewController {
   /**
    * 특정 향수에 리뷰를 작성한다.
    *
-   * <p>현재는 인증 통합 전 준비 단계로 {@code userId}를 query parameter로 받는다. 이 값은 운영 수준의 authorization이 아니며, 인증
-   * 주체가 연결되면 제거될 임시 계약이다.
+   * <p>리뷰 작성자는 JWT subject에 담긴 현재 인증 사용자 ID로 결정한다.
    *
    * @param id 리뷰를 작성할 향수 ID. 1 이상이어야 한다.
-   * @param userId 리뷰 작성자 ID. 인증 통합 전까지 사용하는 임시 입력값이다.
+   * @param authentication JWT subject를 포함한 Spring Security 인증 객체
    * @param request 만족도, 지속력, 계절, 향 느낌, 코멘트, 면책 동의 여부를 담은 요청 본문
    */
   @PostMapping("/{id}/reviews")
   @ResponseStatus(HttpStatus.CREATED)
   public void createReview(
       @PathVariable @Min(1) Long id,
-      @RequestParam @Min(1) Integer userId,
+      Authentication authentication,
       @RequestBody @Valid ReviewRequest request) {
-    reviewService.createReview(id, userId, request);
+    reviewService.createReview(id, AuthenticatedUserIds.currentUserId(authentication), request);
   }
 }
