@@ -52,6 +52,8 @@ Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; SameSite=Lax
 Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; SameSite=Lax
 ```
 
+`SameSite` 값은 `app.auth.cookie.same-site` 설정을 따릅니다. 프론트가 `https://thescentlab.vercel.app`이고 API가 별도 도메인이라면 운영 설정에서 `app.auth.cookie.same-site=None`, `app.auth.cookie.secure=true`를 사용해야 합니다.
+
 응답 본문:
 
 ```json
@@ -88,6 +90,11 @@ if (!response.ok) {
 }
 
 const currentUser = await response.json();
+
+const csrfResponse = await fetch(`${BACKEND_BASE_URL}/api/auth/csrf`, {
+  credentials: "include",
+});
+const { csrfToken } = await csrfResponse.json();
 ```
 
 axios 예시:
@@ -158,9 +165,10 @@ JWT는 프론트에 직접 노출하지 않습니다. 백엔드는 기본 쿠키
 쿠키 속성:
 
 - `HttpOnly`
-- `SameSite=Lax`
+- `SameSite` 기본값은 `Lax`
 - `Path=/`
 - 운영 HTTPS 환경에서는 `app.auth.cookie.secure=true` 권장
+- Vercel 프론트에서 별도 API 도메인을 직접 호출하는 운영 환경에서는 `SameSite=None; Secure` 필요
 
 프론트는 API 요청에 credentials를 포함해야 합니다.
 
@@ -175,26 +183,70 @@ await fetch(`${BACKEND_BASE_URL}/api/auth/me`, {
 ## CSRF Token
 
 쿠키는 브라우저가 자동으로 전송하므로, 인증 쿠키 기반 상태 변경 API는 CSRF 토큰을 함께 보내야 합니다.
-백엔드는 `XSRF-TOKEN` 쿠키를 내려주며, 프론트는 이 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
+백엔드는 `XSRF-TOKEN` 쿠키를 내려주며, 프론트는 같은 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
 
 회원가입, 로컬 로그인, OAuth 로그인 성공 응답은 `XSRF-TOKEN` 쿠키를 함께 발급합니다.
+프론트와 API가 같은 사이트가 아니면 JavaScript가 API 도메인의 쿠키를 읽을 수 없으므로, 로그인 후 `GET /api/auth/csrf`를 호출해 응답 본문의 `csrfToken`을 보관해야 합니다.
 
 ```ts
-const csrfToken = document.cookie
-  .split("; ")
-  .find((row) => row.startsWith("XSRF-TOKEN="))
-  ?.split("=")[1];
+const csrfResponse = await fetch(`${BACKEND_BASE_URL}/api/auth/csrf`, {
+  credentials: "include",
+});
+const { csrfToken } = await csrfResponse.json();
 
 await fetch(`${BACKEND_BASE_URL}/api/auth/me/profile`, {
   method: "PATCH",
   credentials: "include",
   headers: {
     "Content-Type": "application/json",
-    "X-XSRF-TOKEN": decodeURIComponent(csrfToken ?? ""),
+    "X-XSRF-TOKEN": csrfToken,
   },
   body: JSON.stringify(profile),
 });
 ```
+
+### Vercel Frontend Direct API Setup
+
+현재 프론트 주소가 `https://thescentlab.vercel.app/`이고 백엔드 API를 다른 도메인에서 직접 호출한다면 다음 조건이 모두 필요합니다.
+
+백엔드 운영 환경 변수:
+
+```text
+APP_AUTH_COOKIE_SECURE=true
+APP_AUTH_COOKIE_SAME_SITE=None
+APP_CORS_ALLOWED_ORIGINS=https://thescentlab.vercel.app
+APP_OAUTH2_SUCCESS_REDIRECT_URI=https://thescentlab.vercel.app/oauth2/success
+APP_OAUTH2_FAILURE_REDIRECT_URI=https://thescentlab.vercel.app/oauth2/failure
+```
+
+프론트 요청:
+
+```ts
+const api = "https://api.example.com";
+
+await fetch(`${api}/api/auth/login`, {
+  method: "POST",
+  credentials: "include",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ email, password }),
+});
+
+const { csrfToken } = await fetch(`${api}/api/auth/csrf`, {
+  credentials: "include",
+}).then((res) => res.json());
+
+await fetch(`${api}/api/auth/me/profile`, {
+  method: "PATCH",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+    "X-XSRF-TOKEN": csrfToken,
+  },
+  body: JSON.stringify(profile),
+});
+```
+
+OAuth 로그인 후 성공 페이지에서도 같은 방식으로 `GET /api/auth/csrf`를 먼저 호출하면 됩니다.
 
 ## Check Current User
 
@@ -298,6 +350,7 @@ JWT_SECRET
 ```properties
 app.auth.jwt.access-token-validity=1h
 app.auth.cookie.secure=false
+app.auth.cookie.same-site=Lax
 app.oauth2.success-redirect-uri=http://localhost:3000/oauth2/success
 app.oauth2.failure-redirect-uri=http://localhost:3000/oauth2/failure
 app.cors.allowed-origins=http://localhost:3000

@@ -43,9 +43,10 @@ JWT는 프론트에 직접 노출하지 않습니다. 백엔드는 기본 쿠키
 쿠키 속성:
 
 - `HttpOnly`
-- `SameSite=Lax`
+- `SameSite` 기본값은 `Lax`
 - `Path=/`
 - 운영 HTTPS 환경에서는 `app.auth.cookie.secure=true` 권장
+- Vercel 프론트에서 별도 API 도메인을 직접 호출하는 운영 환경에서는 `SameSite=None; Secure` 필요
 
 프론트는 API 요청에 credentials를 포함해야 합니다.
 
@@ -68,24 +69,24 @@ axios.get(`${BACKEND_BASE_URL}/api/auth/me`, {
 ## CSRF Token
 
 쿠키는 브라우저가 자동으로 전송하므로, 상태 변경 API는 CSRF 토큰을 함께 보내야 합니다.
-백엔드는 `XSRF-TOKEN` 쿠키를 내려주며, 프론트는 이 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
+백엔드는 `XSRF-TOKEN` 쿠키를 내려주며, 프론트는 같은 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
 
-로그인 성공 후 먼저 `GET /api/auth/me`를 호출하면 인증 상태 확인과 함께 CSRF 쿠키를 받을 수 있습니다.
+프론트와 API가 같은 사이트가 아니면 JavaScript가 API 도메인의 쿠키를 읽을 수 없습니다. OAuth 성공 페이지에서는 먼저 `GET /api/auth/csrf`를 호출해 응답 본문의 `csrfToken`을 보관한 뒤 상태 변경 요청에 사용합니다.
 
 fetch 사용 예시:
 
 ```ts
-const csrfToken = document.cookie
-  .split("; ")
-  .find((row) => row.startsWith("XSRF-TOKEN="))
-  ?.split("=")[1];
+const csrfResponse = await fetch(`${BACKEND_BASE_URL}/api/auth/csrf`, {
+  credentials: "include",
+});
+const { csrfToken } = await csrfResponse.json();
 
 await fetch(`${BACKEND_BASE_URL}/api/auth/me/profile`, {
   method: "PATCH",
   credentials: "include",
   headers: {
     "Content-Type": "application/json",
-    "X-XSRF-TOKEN": decodeURIComponent(csrfToken ?? ""),
+    "X-XSRF-TOKEN": csrfToken,
   },
   body: JSON.stringify(profile),
 });
@@ -201,6 +202,7 @@ JWT_SECRET
 ```properties
 app.auth.jwt.access-token-validity=1h
 app.auth.cookie.secure=false
+app.auth.cookie.same-site=Lax
 app.oauth2.success-redirect-uri=http://localhost:3000/oauth2/success
 app.oauth2.failure-redirect-uri=http://localhost:3000/oauth2/failure
 app.cors.allowed-origins=http://localhost:3000
