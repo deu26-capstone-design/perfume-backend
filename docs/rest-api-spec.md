@@ -73,6 +73,193 @@
 ]
 ```
 
+## Auth API
+
+### 로컬 회원가입
+
+```http
+POST /api/auth/signup
+```
+
+로컬 비밀번호 기반 계정을 생성합니다. 회원가입이 성공하면 백엔드는 `PERFUME_ACCESS_TOKEN` HttpOnly 쿠키와 `XSRF-TOKEN` 쿠키를 발급하고, 생성된 사용자 프로필을 반환합니다.
+
+#### Request body
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+| --- | --- | --- | --- | --- |
+| `email` | string | yes | 이메일 형식, 최대 100자 | 로그인에 사용할 고유 이메일 |
+| `password` | string | yes | 10~72자 | 로컬 로그인 비밀번호 |
+| `name` | string | yes | 최대 24자 | 사용자 실명 또는 표시 이름 |
+| `nickname` | string | yes | 최대 24자 | 공개되는 고유 닉네임 |
+| `gender` | string | yes | 최대 1자 | 성별 코드 |
+| `birthDate` | string | yes | 과거 날짜 | 생년월일. `yyyy-MM-dd` |
+| `phoneNumber` | string | yes | 최대 15자 | 전화번호 |
+
+```json
+{
+  "email": "user@example.com",
+  "password": "secret-password",
+  "name": "김향수",
+  "nickname": "perfume_user",
+  "gender": "F",
+  "birthDate": "1999-05-01",
+  "phoneNumber": "01012345678"
+}
+```
+
+#### Response `200 OK`
+
+`Set-Cookie` 헤더:
+
+```http
+Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; SameSite=Lax
+Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; SameSite=Lax
+```
+
+응답 본문:
+
+```json
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "name": "김향수",
+  "nickname": "perfume_user",
+  "gender": "F",
+  "birthDate": "1999-05-01",
+  "phoneNumber": "01012345678",
+  "oauthProvider": null,
+  "profileCompleted": true
+}
+```
+
+#### Error cases
+
+| HTTP status | 조건 | 대표 메시지 |
+| --- | --- | --- |
+| `400 Bad Request` | 요청 본문 검증 실패 | 검증 메시지 |
+| `409 Conflict` | email 또는 nickname 중복 | `email already exists`, `nickname already exists` |
+
+### 로컬 로그인
+
+```http
+POST /api/auth/login
+```
+
+로컬 비밀번호 기반 계정을 인증합니다. OAuth 전용 계정은 로컬 비밀번호가 없으므로 이 로그인 흐름에서 거부됩니다. 로그인 성공 시 JWT는 응답 본문에 노출하지 않고 `PERFUME_ACCESS_TOKEN` HttpOnly 쿠키로만 전달합니다.
+
+#### Request body
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+| --- | --- | --- | --- | --- |
+| `email` | string | yes | 이메일 형식, 최대 100자 | 로컬 계정 이메일 |
+| `password` | string | yes | 최대 72자 | 로컬 계정 비밀번호 |
+
+```json
+{
+  "email": "user@example.com",
+  "password": "secret-password"
+}
+```
+
+#### Response `200 OK`
+
+`Set-Cookie` 헤더:
+
+```http
+Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; SameSite=Lax
+Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; SameSite=Lax
+```
+
+응답 본문:
+
+```json
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "name": "김향수",
+  "nickname": "perfume_user",
+  "gender": "F",
+  "birthDate": "1999-05-01",
+  "phoneNumber": "01012345678",
+  "oauthProvider": null,
+  "profileCompleted": true
+}
+```
+
+브라우저 클라이언트는 이후 요청에 쿠키가 포함되도록 credentials를 활성화해야 합니다.
+
+```ts
+await fetch(`${BACKEND_BASE_URL}/api/auth/login`, {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    email: "user@example.com",
+    password: "secret-password",
+  }),
+});
+```
+
+JWT 쿠키 기반 `POST`, `PATCH`, `DELETE` 요청에서는 로그인 응답으로 받은 `XSRF-TOKEN` 쿠키 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
+
+#### Error cases
+
+| HTTP status | 조건 | 대표 메시지 |
+| --- | --- | --- |
+| `400 Bad Request` | 요청 본문 검증 실패 | 검증 메시지 |
+| `401 Unauthorized` | email이 없거나 비밀번호가 맞지 않거나 OAuth 전용 계정임 | `invalid credentials` |
+
+### 현재 사용자 조회
+
+```http
+GET /api/auth/me
+```
+
+현재 JWT 인증이 나타내는 사용자 정보를 조회합니다.
+
+#### Response `200 OK`
+
+```json
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "name": "김향수",
+  "nickname": "perfume_user",
+  "gender": "F",
+  "birthDate": "1999-05-01",
+  "phoneNumber": "01012345678",
+  "oauthProvider": null,
+  "profileCompleted": true
+}
+```
+
+#### Error cases
+
+| HTTP status | 조건 | 대표 메시지 |
+| --- | --- | --- |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+
+### 로그아웃
+
+```http
+POST /api/auth/logout
+```
+
+현재 인증 쿠키와 CSRF 쿠키를 만료시킵니다. JWT 쿠키 기반 요청이므로 `X-XSRF-TOKEN` 헤더가 필요합니다.
+
+#### Response `204 No Content`
+
+응답 본문은 없습니다.
+
+`Set-Cookie` 헤더:
+
+```http
+Set-Cookie: PERFUME_ACCESS_TOKEN=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax
+Set-Cookie: XSRF-TOKEN=; Path=/; Max-Age=0; SameSite=Lax
+```
+
 ## Accord API
 
 ### 어코드 목록 조회

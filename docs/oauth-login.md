@@ -43,8 +43,70 @@ Content-Type: application/json
 }
 ```
 
-성공 시 백엔드는 자체 JWT를 `PERFUME_ACCESS_TOKEN` `HttpOnly` 쿠키로 설정하고 `AuthUserResponse`를 반환합니다.
-email이 없거나 비밀번호가 맞지 않거나 OAuth 전용 계정이면 `401 Unauthorized`를 반환합니다.
+성공 시 백엔드는 자체 JWT를 `PERFUME_ACCESS_TOKEN` `HttpOnly` 쿠키로 설정하고, 상태 변경 API용 `XSRF-TOKEN` 쿠키를 함께 내려줍니다. JWT 문자열은 응답 본문에 포함하지 않습니다.
+
+응답 헤더:
+
+```http
+Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; SameSite=Lax
+Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; SameSite=Lax
+```
+
+응답 본문:
+
+```json
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "name": "김향수",
+  "nickname": "perfume_user",
+  "gender": "F",
+  "birthDate": "1999-05-01",
+  "phoneNumber": "01012345678",
+  "oauthProvider": null,
+  "profileCompleted": true
+}
+```
+
+fetch 예시:
+
+```ts
+const response = await fetch(`${BACKEND_BASE_URL}/api/auth/login`, {
+  method: "POST",
+  credentials: "include",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    email: "user@example.com",
+    password: "secret-password",
+  }),
+});
+
+if (!response.ok) {
+  throw new Error("login failed");
+}
+
+const currentUser = await response.json();
+```
+
+axios 예시:
+
+```ts
+axios.defaults.withCredentials = true;
+axios.defaults.xsrfCookieName = "XSRF-TOKEN";
+axios.defaults.xsrfHeaderName = "X-XSRF-TOKEN";
+
+const { data: currentUser } = await axios.post(
+  `${BACKEND_BASE_URL}/api/auth/login`,
+  {
+    email: "user@example.com",
+    password: "secret-password",
+  }
+);
+```
+
+email이 없거나 비밀번호가 맞지 않거나 OAuth 전용 계정이면 `401 Unauthorized`를 반환합니다. 요청 본문 형식이 맞지 않으면 `400 Bad Request`를 반환합니다.
 
 ## OAuth Login Start
 
@@ -115,7 +177,7 @@ await fetch(`${BACKEND_BASE_URL}/api/auth/me`, {
 쿠키는 브라우저가 자동으로 전송하므로, 인증 쿠키 기반 상태 변경 API는 CSRF 토큰을 함께 보내야 합니다.
 백엔드는 `XSRF-TOKEN` 쿠키를 내려주며, 프론트는 이 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
 
-로그인 성공 후 먼저 `GET /api/auth/me`를 호출하면 인증 상태 확인과 함께 CSRF 쿠키를 받을 수 있습니다.
+회원가입, 로컬 로그인, OAuth 로그인 성공 응답은 `XSRF-TOKEN` 쿠키를 함께 발급합니다.
 
 ```ts
 const csrfToken = document.cookie
