@@ -1,260 +1,174 @@
-# Auth and OAuth Login Integration
+# Frontend Auth Integration Guide
 
-이 문서는 프론트엔드에서 백엔드 인증 API, Google OAuth, Naver OAuth를 연동하기 위한 공개 계약입니다.
+이 문서는 Vercel 프론트엔드에서 Perfume Backend 인증을 붙일 때 필요한 내용만 정리합니다.
 
-## Local Signup
-
-```text
-POST /api/auth/signup
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "email": "user@example.com",
-  "password": "secret-password",
-  "name": "김향수",
-  "nickname": "perfume_user",
-  "gender": "F",
-  "birthDate": "1999-05-01",
-  "phoneNumber": "01012345678"
-}
-```
-
-성공 시 백엔드는 자체 JWT를 `PERFUME_ACCESS_TOKEN` `HttpOnly` 쿠키로 설정하고 `AuthUserResponse`를 반환합니다. 로컬 회원가입 사용자는 `profileCompleted=true`입니다.
-
-비밀번호는 10자 이상 72자 이하입니다. 중복 email 또는 nickname은 `409 Conflict`, validation 실패는 `400 Bad Request`를 반환합니다.
-
-## Local Login
+현재 프론트 주소:
 
 ```text
-POST /api/auth/login
-Content-Type: application/json
+https://thescentlab.vercel.app/
 ```
 
-요청:
+백엔드는 별도 API 도메인으로 호출한다고 가정합니다.
 
-```json
-{
-  "email": "user@example.com",
-  "password": "secret-password"
-}
+```text
+https://api.example.com
 ```
 
-성공 시 백엔드는 자체 JWT를 `PERFUME_ACCESS_TOKEN` `HttpOnly` 쿠키로 설정하고, 상태 변경 API용 `XSRF-TOKEN` 쿠키를 함께 내려줍니다. JWT 문자열은 응답 본문에 포함하지 않습니다.
-
-응답 헤더:
-
-```http
-Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; SameSite=Lax
-Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; SameSite=Lax
-```
-
-`SameSite` 값은 `app.auth.cookie.same-site` 설정을 따릅니다. 프론트가 `https://thescentlab.vercel.app`이고 API가 별도 도메인이라면 운영 설정에서 `app.auth.cookie.same-site=None`, `app.auth.cookie.secure=true`를 사용해야 합니다.
-
-응답 본문:
-
-```json
-{
-  "userId": 1,
-  "email": "user@example.com",
-  "name": "김향수",
-  "nickname": "perfume_user",
-  "gender": "F",
-  "birthDate": "1999-05-01",
-  "phoneNumber": "01012345678",
-  "oauthProvider": null,
-  "profileCompleted": true
-}
-```
-
-fetch 예시:
+프론트 코드에서는 아래 값만 실제 API 도메인으로 바꿔서 사용하면 됩니다.
 
 ```ts
-const response = await fetch(`${BACKEND_BASE_URL}/api/auth/login`, {
-  method: "POST",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({
-    email: "user@example.com",
-    password: "secret-password",
-  }),
-});
-
-if (!response.ok) {
-  throw new Error("login failed");
-}
-
-const currentUser = await response.json();
-
-const csrfResponse = await fetch(`${BACKEND_BASE_URL}/api/auth/csrf`, {
-  credentials: "include",
-});
-const { csrfToken } = await csrfResponse.json();
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 ```
 
-axios 예시:
+## 핵심 규칙
+
+- 모든 인증 API 요청에는 `credentials: "include"`를 넣습니다.
+- JWT는 `PERFUME_ACCESS_TOKEN` `HttpOnly` 쿠키로만 전달됩니다.
+- 프론트는 JWT를 직접 읽거나 저장하지 않습니다.
+- 로그인 또는 OAuth 성공 후 `GET /api/auth/csrf`를 호출해서 `csrfToken`을 받아둡니다.
+- `POST`, `PATCH`, `DELETE` 요청에는 `X-XSRF-TOKEN` 헤더를 보냅니다.
+- `401`이면 로그인되지 않은 상태로 처리합니다.
+- `403`이면 CSRF 토큰이 없거나 오래된 상태이므로 `/api/auth/csrf`를 다시 호출합니다.
+
+## 공통 Fetch Helper
 
 ```ts
-axios.defaults.withCredentials = true;
-axios.defaults.xsrfCookieName = "XSRF-TOKEN";
-axios.defaults.xsrfHeaderName = "X-XSRF-TOKEN";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
-const { data: currentUser } = await axios.post(
-  `${BACKEND_BASE_URL}/api/auth/login`,
-  {
-    email: "user@example.com",
-    password: "secret-password",
+let csrfToken: string | null = null;
+
+async function apiFetch(path: string, init: RequestInit = {}) {
+  return fetch(`${API_BASE_URL}${path}`, {
+    ...init,
+    credentials: "include",
+    headers: {
+      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
+      ...init.headers,
+    },
+  });
+}
+
+export async function refreshCsrfToken() {
+  const response = await apiFetch("/api/auth/csrf");
+
+  if (!response.ok) {
+    csrfToken = null;
+    return null;
   }
-);
+
+  const body = (await response.json()) as { csrfToken: string };
+  csrfToken = body.csrfToken;
+  return csrfToken;
+}
 ```
 
-email이 없거나 비밀번호가 맞지 않거나 OAuth 전용 계정이면 `401 Unauthorized`를 반환합니다. 요청 본문 형식이 맞지 않으면 `400 Bad Request`를 반환합니다.
-
-## OAuth Login Start
-
-브라우저를 아래 URL로 이동시키면 OAuth 로그인 플로우가 시작됩니다.
-
-```text
-GET {BACKEND_BASE_URL}/oauth2/authorization/google
-GET {BACKEND_BASE_URL}/oauth2/authorization/naver
-```
-
-예시:
+## 로컬 회원가입
 
 ```ts
-window.location.href = `${BACKEND_BASE_URL}/oauth2/authorization/naver`;
+export async function signup() {
+  const response = await apiFetch("/api/auth/signup", {
+    method: "POST",
+    body: JSON.stringify({
+      email: "user@example.com",
+      password: "secret-password",
+      name: "김향수",
+      nickname: "perfume_user",
+      gender: "F",
+      birthDate: "1999-05-01",
+      phoneNumber: "01012345678",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error("signup failed");
+  }
+
+  const currentUser = await response.json();
+  await refreshCsrfToken();
+  return currentUser;
+}
 ```
 
-## OAuth Redirect Flow
-
-1. 프론트가 사용자를 `/oauth2/authorization/{provider}`로 이동시킵니다.
-2. 백엔드는 provider 로그인 화면으로 리다이렉트합니다.
-3. 인증이 완료되면 provider가 백엔드 콜백으로 리다이렉트합니다.
-   - Google 로컬 예: `http://localhost:8080/login/oauth2/code/google`
-   - Naver 로컬 예: `http://localhost:8080/login/oauth2/code/naver`
-4. 백엔드는 provider 사용자 정보를 확인합니다.
-   - Google은 `sub`, `email`, `email_verified`, `name`을 사용하며, `email_verified=true`가 아니면 실패 처리합니다.
-   - Naver는 `response.id`, `response.email`, `response.name`, `response.nickname`, `response.gender`, `response.birthyear`, `response.birthday`, `response.mobile` 형태의 프로필 응답을 받습니다. 계정 식별과 생성에는 `response.id`, `response.email`, 이름 표시에 `response.name` 또는 `response.nickname`을 사용합니다.
-   - 신규 OAuth 사용자는 `profileCompleted=false` 상태로 생성합니다.
-   - Google은 `email_verified=true`인 경우 동일 email의 기존 로컬 사용자에 provider 정보를 연결합니다.
-   - Naver는 현재 응답에서 email 검증 보증을 확인하지 않으므로 동일 email의 기존 로컬 사용자에 자동 연결하지 않고 실패 처리합니다.
-   - 이미 다른 provider 계정이 연결된 email이면 실패 처리합니다.
-5. 백엔드는 자체 JWT를 `HttpOnly` 쿠키로 설정한 뒤 성공 URL로 리다이렉트합니다.
-
-성공 URL은 `app.oauth2.success-redirect-uri`, 실패 URL은 `app.oauth2.failure-redirect-uri`로 설정합니다. 실패 URL에는 `error` 쿼리 파라미터가 붙을 수 있습니다.
-
-```text
-{FAILURE_REDIRECT_URI}?error=email_not_verified
-{FAILURE_REDIRECT_URI}?error=oauth_account_conflict
-{FAILURE_REDIRECT_URI}?error=oauth_login_failed
-{FAILURE_REDIRECT_URI}?error=missing_naver_response
-{FAILURE_REDIRECT_URI}?error=missing_naver_response_id
-{FAILURE_REDIRECT_URI}?error=missing_naver_response_email
-{FAILURE_REDIRECT_URI}?error=unsupported_oauth_provider
-```
-
-## Cookie Authentication
-
-JWT는 프론트에 직접 노출하지 않습니다. 백엔드는 기본 쿠키 이름 `PERFUME_ACCESS_TOKEN`에 JWT를 저장합니다.
-
-쿠키 속성:
-
-- `HttpOnly`
-- `SameSite` 기본값은 `Lax`
-- `Path=/`
-- 운영 HTTPS 환경에서는 `app.auth.cookie.secure=true` 권장
-- Vercel 프론트에서 별도 API 도메인을 직접 호출하는 운영 환경에서는 `SameSite=None; Secure` 필요
-
-프론트는 API 요청에 credentials를 포함해야 합니다.
+## 로컬 로그인
 
 ```ts
-await fetch(`${BACKEND_BASE_URL}/api/auth/me`, {
-  credentials: "include",
-});
+export async function login(email: string, password: string) {
+  const response = await apiFetch("/api/auth/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (response.status === 401) {
+    throw new Error("invalid credentials");
+  }
+
+  if (!response.ok) {
+    throw new Error("login failed");
+  }
+
+  const currentUser = await response.json();
+  await refreshCsrfToken();
+  return currentUser;
+}
 ```
 
-보안상 JWT를 `localStorage` 또는 `sessionStorage`에 저장하지 마십시오.
+## OAuth 로그인 시작
 
-## CSRF Token
-
-쿠키는 브라우저가 자동으로 전송하므로, 인증 쿠키 기반 상태 변경 API는 CSRF 토큰을 함께 보내야 합니다.
-백엔드는 `XSRF-TOKEN` 쿠키를 내려주며, 프론트는 같은 값을 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
-
-회원가입, 로컬 로그인, OAuth 로그인 성공 응답은 `XSRF-TOKEN` 쿠키를 함께 발급합니다.
-프론트와 API가 같은 사이트가 아니면 JavaScript가 API 도메인의 쿠키를 읽을 수 없으므로, 로그인 후 `GET /api/auth/csrf`를 호출해 응답 본문의 `csrfToken`을 보관해야 합니다.
+브라우저를 백엔드 OAuth 시작 URL로 이동시키면 됩니다.
 
 ```ts
-const csrfResponse = await fetch(`${BACKEND_BASE_URL}/api/auth/csrf`, {
-  credentials: "include",
-});
-const { csrfToken } = await csrfResponse.json();
+export function startGoogleLogin() {
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
+}
 
-await fetch(`${BACKEND_BASE_URL}/api/auth/me/profile`, {
-  method: "PATCH",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-    "X-XSRF-TOKEN": csrfToken,
-  },
-  body: JSON.stringify(profile),
-});
+export function startNaverLogin() {
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/naver`;
+}
 ```
 
-### Vercel Frontend Direct API Setup
-
-현재 프론트 주소가 `https://thescentlab.vercel.app/`이고 백엔드 API를 다른 도메인에서 직접 호출한다면 다음 조건이 모두 필요합니다.
-
-백엔드 운영 환경 변수:
+OAuth 성공 후 백엔드는 프론트 성공 페이지로 리다이렉트합니다.
 
 ```text
-APP_AUTH_COOKIE_SECURE=true
-APP_AUTH_COOKIE_SAME_SITE=None
-APP_CORS_ALLOWED_ORIGINS=https://thescentlab.vercel.app
-APP_OAUTH2_SUCCESS_REDIRECT_URI=https://thescentlab.vercel.app/oauth2/success
-APP_OAUTH2_FAILURE_REDIRECT_URI=https://thescentlab.vercel.app/oauth2/failure
+https://thescentlab.vercel.app/oauth2/success
 ```
 
-프론트 요청:
+성공 페이지에서는 바로 인증 상태를 초기화합니다.
 
 ```ts
-const api = "https://api.example.com";
-
-await fetch(`${api}/api/auth/login`, {
-  method: "POST",
-  credentials: "include",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ email, password }),
-});
-
-const { csrfToken } = await fetch(`${api}/api/auth/csrf`, {
-  credentials: "include",
-}).then((res) => res.json());
-
-await fetch(`${api}/api/auth/me/profile`, {
-  method: "PATCH",
-  credentials: "include",
-  headers: {
-    "Content-Type": "application/json",
-    "X-XSRF-TOKEN": csrfToken,
-  },
-  body: JSON.stringify(profile),
-});
+export async function bootstrapAfterOAuthSuccess() {
+  await refreshCsrfToken();
+  return getCurrentUser();
+}
 ```
 
-OAuth 로그인 후 성공 페이지에서도 같은 방식으로 `GET /api/auth/csrf`를 먼저 호출하면 됩니다.
-
-## Check Current User
+OAuth 실패 시에는 실패 페이지로 리다이렉트됩니다.
 
 ```text
-GET /api/auth/me
+https://thescentlab.vercel.app/oauth2/failure?error=oauth_login_failed
 ```
 
-응답 예시:
+프론트는 `error` query parameter를 읽어서 로그인 실패 화면을 보여주면 됩니다.
+
+## 현재 사용자 조회
+
+```ts
+export async function getCurrentUser() {
+  const response = await apiFetch("/api/auth/me");
+
+  if (response.status === 401) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error("failed to load current user");
+  }
+
+  return response.json();
+}
+```
+
+응답의 `profileCompleted`가 `false`이면 추가 프로필 입력 화면으로 보내면 됩니다.
 
 ```json
 {
@@ -270,107 +184,213 @@ GET /api/auth/me
 }
 ```
 
-`profileCompleted=false`이면 추가 프로필 입력 화면으로 이동시킵니다.
+## 프로필 완성
 
-## Complete Profile
-
-```text
-PATCH /api/auth/me/profile
-Content-Type: application/json
-```
-
-요청:
-
-```json
-{
-  "name": "김향수",
-  "nickname": "perfume_user",
-  "gender": "F",
-  "birthDate": "1999-05-01",
-  "phoneNumber": "01012345678"
-}
-```
-
-응답 예시:
-
-```json
-{
-  "userId": 1,
-  "email": "user@example.com",
-  "name": "김향수",
-  "nickname": "perfume_user",
-  "gender": "F",
-  "birthDate": "1999-05-01",
-  "phoneNumber": "01012345678",
-  "oauthProvider": "NAVER",
-  "profileCompleted": true
-}
-```
-
-닉네임이 이미 사용 중이면 `409 Conflict`, 필수 값이 없거나 길이 제한을 초과하면 `400 Bad Request`가 반환됩니다.
-
-## Logout
-
-```text
-POST /api/auth/logout
-```
-
-요청 예시:
+`PATCH`, `POST`, `DELETE` 요청은 CSRF 토큰이 필요합니다. 로그인 직후 또는 OAuth 성공 직후 `refreshCsrfToken()`을 한 번 호출해둔 상태여야 합니다.
 
 ```ts
-await fetch(`${BACKEND_BASE_URL}/api/auth/logout`, {
+export async function completeProfile(profile: {
+  name: string;
+  nickname: string;
+  gender: string;
+  birthDate: string;
+  phoneNumber: string;
+}) {
+  if (!csrfToken) {
+    await refreshCsrfToken();
+  }
+
+  const response = await apiFetch("/api/auth/me/profile", {
+    method: "PATCH",
+    body: JSON.stringify(profile),
+  });
+
+  if (response.status === 403) {
+    await refreshCsrfToken();
+    throw new Error("csrf token refreshed; retry the request");
+  }
+
+  if (!response.ok) {
+    throw new Error("profile update failed");
+  }
+
+  return response.json();
+}
+```
+
+## 로그아웃
+
+```ts
+export async function logout() {
+  if (!csrfToken) {
+    await refreshCsrfToken();
+  }
+
+  const response = await apiFetch("/api/auth/logout", {
+    method: "POST",
+  });
+
+  csrfToken = null;
+
+  if (!response.ok && response.status !== 401) {
+    throw new Error("logout failed");
+  }
+}
+```
+
+## 위시리스트와 리뷰 작성
+
+위시리스트 추가, 위시리스트 삭제, 리뷰 작성도 같은 규칙을 사용합니다.
+
+```ts
+await apiFetch(`/api/wishlist/${perfumeId}`, {
   method: "POST",
-  credentials: "include",
-  headers: {
-    "X-XSRF-TOKEN": csrfToken,
-  },
+});
+
+await apiFetch(`/api/wishlist/${perfumeId}`, {
+  method: "DELETE",
+});
+
+await apiFetch(`/api/perfumes/${perfumeId}/reviews`, {
+  method: "POST",
+  body: JSON.stringify({
+    satisfaction: 5,
+    longevity: 2,
+    seasons: ["봄"],
+    scents: ["꽃 향"],
+    comment: "좋아요.",
+    disclaimerAgreed: true,
+  }),
 });
 ```
 
-백엔드는 인증 쿠키를 만료시키고 `204 No Content`를 반환합니다.
+## Vercel 환경 변수
 
-## Backend Configuration
-
-Google Cloud Console과 Naver Developers에서 OAuth 클라이언트를 생성하고 승인된 redirect URI에 백엔드 콜백을 등록해야 합니다.
-
-필수 secret:
+Vercel 프로젝트에는 API 도메인만 넣으면 됩니다.
 
 ```text
-GOOGLE_CLIENT_ID
-GOOGLE_CLIENT_SECRET
-NAVER_CLIENT_ID
-NAVER_CLIENT_SECRET
-JWT_SECRET
+NEXT_PUBLIC_API_BASE_URL=https://api.example.com
 ```
 
-`JWT_SECRET`은 HS256 서명을 위해 최소 32바이트 이상의 충분히 긴 랜덤 문자열이어야 합니다.
+프론트에서 `https://thescentlab.vercel.app/api/...`로 프록시하지 않고 API 도메인을 직접 호출하는 구조입니다.
 
-주요 설정:
+## 서버 컴퓨터에서 해야 할 작업
 
-```properties
-app.auth.jwt.access-token-validity=1h
-app.auth.cookie.secure=false
-app.auth.cookie.same-site=Lax
-app.oauth2.success-redirect-uri=http://localhost:3000/oauth2/success
-app.oauth2.failure-redirect-uri=http://localhost:3000/oauth2/failure
-app.cors.allowed-origins=http://localhost:3000
+서버 컴퓨터에서는 백엔드가 Vercel 프론트에서 오는 쿠키 인증 요청을 받을 수 있게 환경 변수와 Nginx를 맞춰야 합니다.
+
+### 1. 백엔드 최신 코드 반영
+
+```powershell
+cd H:\perfume-backend
+git pull
+.\gradlew.bat build
 ```
 
-Naver provider endpoint는 Naver Developers 문서 기준으로 다음 값을 사용합니다.
+이미 배포용 jar를 따로 복사해서 실행하는 구조라면 새로 빌드된 jar로 교체합니다.
 
-```properties
-spring.security.oauth2.client.provider.naver.authorization-uri=https://nid.naver.com/oauth2.0/authorize
-spring.security.oauth2.client.provider.naver.token-uri=https://nid.naver.com/oauth2.0/token
-spring.security.oauth2.client.provider.naver.user-info-uri=https://openapi.naver.com/v1/nid/me
-spring.security.oauth2.client.registration.naver.client-authentication-method=client_secret_post
+### 2. 백엔드 운영 환경 변수 설정
+
+운영 환경에서는 반드시 HTTPS 쿠키 설정을 사용합니다.
+
+```text
+JWT_SECRET=최소_32바이트_이상의_랜덤_문자열
+APP_AUTH_COOKIE_SECURE=true
+APP_AUTH_COOKIE_SAME_SITE=None
+APP_CORS_ALLOWED_ORIGINS=https://thescentlab.vercel.app
+APP_OAUTH2_SUCCESS_REDIRECT_URI=https://thescentlab.vercel.app/oauth2/success
+APP_OAUTH2_FAILURE_REDIRECT_URI=https://thescentlab.vercel.app/oauth2/failure
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+NAVER_CLIENT_ID=...
+NAVER_CLIENT_SECRET=...
 ```
 
-로컬 개발에서 프론트와 백엔드 origin이 다르면 `app.cors.allowed-origins`에 프론트 origin을 등록해야 합니다.
-쿠키 인증을 쓰므로 CORS 응답은 credentials를 허용해야 하며, 프론트 요청도 credentials를 포함해야 합니다.
+`APP_AUTH_COOKIE_SAME_SITE=None`은 프론트와 API가 서로 다른 사이트일 때 쿠키를 보내기 위해 필요합니다. 이 설정은 `APP_AUTH_COOKIE_SECURE=true`와 HTTPS가 같이 있어야 브라우저에서 정상 동작합니다.
 
-## Existing MySQL Schema Migration
+### 3. Nginx HTTPS 프록시 설정
 
-기존 `users` 테이블은 password 기반 가입을 전제로 `password`, `nickname`, `gender`, `birth_date`, `phone_number`가 `NOT NULL`일 수 있습니다.
-OAuth 신규 사용자는 프로필 완료 전 이 값들이 비어 있으므로, 배포 전 [google-oauth-user-schema.sql](sql/google-oauth-user-schema.sql)을 검토 후 적용해야 합니다.
+API 도메인 예시를 `api.example.com`이라고 하면 Nginx는 백엔드 앱의 `localhost:8080`으로 프록시합니다.
 
-`spring.jpa.hibernate.ddl-auto=update`는 기존 컬럼의 `NOT NULL` 제약을 안정적으로 완화하지 않으므로, 운영 환경에서는 명시적 SQL 마이그레이션을 사용하십시오.
+```nginx
+server {
+    listen 80;
+    server_name api.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name api.example.com;
+
+    ssl_certificate /etc/letsencrypt/live/api.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/api.example.com/privkey.pem;
+
+    location / {
+        proxy_pass http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }
+}
+```
+
+CORS는 Spring 백엔드가 처리하므로 Nginx에서 `Access-Control-Allow-Origin: *` 같은 헤더를 따로 추가하지 마십시오. 쿠키 인증에서는 `*` origin과 credentials를 같이 쓸 수 없습니다.
+
+### 4. OAuth 제공자 콘솔 설정
+
+Google Cloud Console과 Naver Developers의 redirect URI에 백엔드 콜백 주소를 등록합니다.
+
+```text
+https://api.example.com/login/oauth2/code/google
+https://api.example.com/login/oauth2/code/naver
+```
+
+프론트 주소가 아니라 백엔드 API 도메인입니다.
+
+### 5. 재시작과 확인
+
+백엔드 앱과 Nginx를 재시작한 뒤 공개 API와 CORS preflight를 확인합니다.
+
+```bash
+curl -i https://api.example.com/api/perfumes?page=0&size=1
+
+curl -i -X OPTIONS https://api.example.com/api/auth/me \
+  -H "Origin: https://thescentlab.vercel.app" \
+  -H "Access-Control-Request-Method: GET"
+```
+
+응답에 아래 헤더가 보여야 합니다.
+
+```http
+Access-Control-Allow-Origin: https://thescentlab.vercel.app
+Access-Control-Allow-Credentials: true
+```
+
+로컬 로그인 테스트에서는 `Set-Cookie`에 다음 속성이 보여야 합니다.
+
+```http
+Set-Cookie: PERFUME_ACCESS_TOKEN=...; Path=/; Max-Age=...; Expires=...; HttpOnly; Secure; SameSite=None
+```
+
+## 자주 나는 문제
+
+### 로그인은 200인데 `/api/auth/me`가 401
+
+- 프론트 요청에 `credentials: "include"`가 빠졌는지 확인합니다.
+- 서버 쿠키가 `SameSite=None; Secure`로 내려오는지 확인합니다.
+- API가 HTTPS인지 확인합니다.
+- `APP_CORS_ALLOWED_ORIGINS`가 정확히 `https://thescentlab.vercel.app`인지 확인합니다.
+
+### 상태 변경 요청이 403
+
+- 로그인 또는 OAuth 성공 후 `GET /api/auth/csrf`를 호출했는지 확인합니다.
+- `X-XSRF-TOKEN` 헤더에 `csrfToken` 값을 보냈는지 확인합니다.
+- 오래된 토큰일 수 있으니 `/api/auth/csrf`를 다시 호출한 뒤 재시도합니다.
+
+### OAuth 성공 후 로그인 상태가 안 잡힘
+
+- OAuth provider redirect URI가 API 도메인인지 확인합니다.
+- 백엔드 성공 리다이렉트가 `https://thescentlab.vercel.app/oauth2/success`인지 확인합니다.
+- 성공 페이지에서 `refreshCsrfToken()`과 `/api/auth/me`를 호출하는지 확인합니다.
