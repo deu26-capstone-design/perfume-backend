@@ -3,7 +3,7 @@
 ### Run signup or login, then "Issue CSRF token" before protected mutation requests.
 ### The response scripts store PERFUME_ACCESS_TOKEN and XSRF-TOKEN into global variables.
 
-@baseUrl = http://localhost:8080
+@baseUrl = https://perfume.biryeong.kim
 @email = local-login-test@example.com
 @password = secret-password
 @name = 테스트유저
