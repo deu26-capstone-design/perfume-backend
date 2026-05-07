@@ -330,13 +330,16 @@ server {
         proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header CF-Connecting-IP "";
         proxy_set_header X-Forwarded-Proto https;
     }
 }
 ```
 
 CORS는 Spring 백엔드가 처리하므로 Nginx에서 `Access-Control-Allow-Origin: *` 같은 헤더를 따로 추가하지 마십시오. 쿠키 인증에서는 `*` origin과 credentials를 같이 쓸 수 없습니다.
+
+감사 로그의 `client_ip`는 백엔드가 신뢰한 프록시에서 온 요청일 때만 `X-Forwarded-For` 또는 `X-Real-IP`를 사용합니다. 운영에서 Nginx 컨테이너/호스트 IP가 `127.0.0.1`이 아니면 `APP_AUDIT_TRUSTED_PROXY_ADDRESSES`에 해당 IP를 추가하십시오. 공격자가 보낸 기존 `X-Forwarded-For` 값을 이어붙이지 않도록 `$proxy_add_x_forwarded_for` 대신 `$remote_addr`로 덮어씁니다. Cloudflare를 Nginx 앞에 직접 두지 않는 구성에서는 클라이언트가 보낸 `CF-Connecting-IP`를 빈 값으로 덮어씁니다.
 
 ### 4. OAuth 제공자 콘솔 설정
 
