@@ -4,6 +4,7 @@ import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import java.nio.charset.StandardCharsets;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import kim.biryeong.perfume.audit.AuditAuthenticatedUserFilter;
 import kim.biryeong.perfume.auth.cookie.AuthCookieProperties;
 import kim.biryeong.perfume.auth.cookie.CookieBearerTokenResolver;
 import kim.biryeong.perfume.auth.csrf.CookieCsrfEnforcementFilter;
@@ -71,7 +72,8 @@ public class SecurityConfig {
         .oauth2ResourceServer(
             oauth2 ->
                 oauth2.bearerTokenResolver(bearerTokenResolver).jwt(Customizer.withDefaults()));
-    http.addFilterAfter(new CookieCsrfEnforcementFilter(), BearerTokenAuthenticationFilter.class);
+    http.addFilterAfter(new AuditAuthenticatedUserFilter(), BearerTokenAuthenticationFilter.class);
+    http.addFilterAfter(new CookieCsrfEnforcementFilter(), AuditAuthenticatedUserFilter.class);
     return http.build();
   }
 

@@ -1,7 +1,10 @@
 package kim.biryeong.perfume.wishlist.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.Min;
 import java.util.List;
+import kim.biryeong.perfume.audit.AuditEventType;
+import kim.biryeong.perfume.audit.AuditLogRequestAttributes;
 import kim.biryeong.perfume.auth.AuthenticatedUserIds;
 import kim.biryeong.perfume.wishlist.dto.WishlistResponse;
 import kim.biryeong.perfume.wishlist.service.WishlistService;
@@ -30,8 +33,13 @@ public class WishlistController {
    */
   @PostMapping("/{perfumeId}")
   @ResponseStatus(HttpStatus.CREATED)
-  public void addWishlist(@PathVariable @Min(1) Long perfumeId, Authentication authentication) {
-    wishlistService.addWishlist(perfumeId, AuthenticatedUserIds.currentUserId(authentication));
+  public void addWishlist(
+      @PathVariable @Min(1) Long perfumeId,
+      HttpServletRequest servletRequest,
+      Authentication authentication) {
+    Integer userId = AuthenticatedUserIds.currentUserId(authentication);
+    AuditLogRequestAttributes.mark(servletRequest, AuditEventType.WISHLIST_ADD, userId);
+    wishlistService.addWishlist(perfumeId, userId);
   }
 
   /**
@@ -44,8 +52,13 @@ public class WishlistController {
    */
   @DeleteMapping("/{perfumeId}")
   @ResponseStatus(HttpStatus.NO_CONTENT)
-  public void removeWishlist(@PathVariable @Min(1) Long perfumeId, Authentication authentication) {
-    wishlistService.removeWishlist(perfumeId, AuthenticatedUserIds.currentUserId(authentication));
+  public void removeWishlist(
+      @PathVariable @Min(1) Long perfumeId,
+      HttpServletRequest servletRequest,
+      Authentication authentication) {
+    Integer userId = AuthenticatedUserIds.currentUserId(authentication);
+    AuditLogRequestAttributes.mark(servletRequest, AuditEventType.WISHLIST_REMOVE, userId);
+    wishlistService.removeWishlist(perfumeId, userId);
   }
 
   /**

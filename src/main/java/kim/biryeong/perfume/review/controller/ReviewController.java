@@ -1,8 +1,11 @@
 package kim.biryeong.perfume.review.controller;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import kim.biryeong.perfume.audit.AuditEventType;
+import kim.biryeong.perfume.audit.AuditLogRequestAttributes;
 import kim.biryeong.perfume.auth.AuthenticatedUserIds;
 import kim.biryeong.perfume.review.dto.ReviewListResponse;
 import kim.biryeong.perfume.review.dto.ReviewRequest;
@@ -51,8 +54,11 @@ public class ReviewController {
   @ResponseStatus(HttpStatus.CREATED)
   public void createReview(
       @PathVariable @Min(1) Long id,
+      HttpServletRequest servletRequest,
       Authentication authentication,
       @RequestBody @Valid ReviewRequest request) {
-    reviewService.createReview(id, AuthenticatedUserIds.currentUserId(authentication), request);
+    Integer userId = AuthenticatedUserIds.currentUserId(authentication);
+    AuditLogRequestAttributes.mark(servletRequest, AuditEventType.REVIEW_CREATE, userId);
+    reviewService.createReview(id, userId, request);
   }
 }

@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
+import kim.biryeong.perfume.audit.AuditEventType;
+import kim.biryeong.perfume.audit.AuditLogRequestAttributes;
 import kim.biryeong.perfume.auth.cookie.AuthCookieFactory;
 import kim.biryeong.perfume.auth.dto.AuthUserResponse;
 import kim.biryeong.perfume.auth.dto.CompleteProfileRequest;
@@ -51,8 +53,12 @@ public class AuthController {
    */
   @PostMapping("/signup")
   public ResponseEntity<AuthUserResponse> signup(
-      @Valid @RequestBody SignupRequest request, HttpServletResponse response) {
-    return authenticatedResponse(authService.signup(request), response);
+      @Valid @RequestBody SignupRequest requestBody,
+      HttpServletRequest request,
+      HttpServletResponse response) {
+    kim.biryeong.perfume.user.domain.User user = authService.signup(requestBody);
+    AuditLogRequestAttributes.mark(request, AuditEventType.AUTH_SIGNUP, user.getUserId());
+    return authenticatedResponse(user, response);
   }
 
   /**
@@ -64,8 +70,12 @@ public class AuthController {
    */
   @PostMapping("/login")
   public ResponseEntity<AuthUserResponse> login(
-      @Valid @RequestBody LoginRequest request, HttpServletResponse response) {
-    return authenticatedResponse(authService.login(request), response);
+      @Valid @RequestBody LoginRequest requestBody,
+      HttpServletRequest request,
+      HttpServletResponse response) {
+    kim.biryeong.perfume.user.domain.User user = authService.login(requestBody);
+    AuditLogRequestAttributes.mark(request, AuditEventType.AUTH_LOGIN, user.getUserId());
+    return authenticatedResponse(user, response);
   }
 
   /**
@@ -108,9 +118,12 @@ public class AuthController {
    */
   @PatchMapping("/me/profile")
   public AuthUserResponse completeProfile(
-      Authentication authentication, @Valid @RequestBody CompleteProfileRequest request) {
-    return AuthUserResponse.from(
-        authService.completeProfile(AuthenticatedUserIds.currentUserId(authentication), request));
+      HttpServletRequest servletRequest,
+      Authentication authentication,
+      @Valid @RequestBody CompleteProfileRequest request) {
+    Integer userId = AuthenticatedUserIds.currentUserId(authentication);
+    AuditLogRequestAttributes.mark(servletRequest, AuditEventType.AUTH_PROFILE_UPDATE, userId);
+    return AuthUserResponse.from(authService.completeProfile(userId, request));
   }
 
   /**
@@ -125,7 +138,8 @@ public class AuthController {
   public ResponseEntity<Void> logout(
       HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
     try {
-      AuthenticatedUserIds.currentUserId(authentication);
+      Integer userId = AuthenticatedUserIds.currentUserId(authentication);
+      AuditLogRequestAttributes.mark(request, AuditEventType.AUTH_LOGOUT, userId);
     } finally {
       expireAuthCookies(request, response);
     }
