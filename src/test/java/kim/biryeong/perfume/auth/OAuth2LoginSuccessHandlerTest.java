@@ -2,8 +2,12 @@ package kim.biryeong.perfume.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
+import kim.biryeong.perfume.audit.AuditEventType;
+import kim.biryeong.perfume.audit.AuditLogService;
+import kim.biryeong.perfume.audit.AuditOutcome;
 import kim.biryeong.perfume.auth.cookie.AuthCookieFactory;
 import kim.biryeong.perfume.auth.cookie.AuthCookieProperties;
 import kim.biryeong.perfume.auth.jwt.JwtProperties;
@@ -31,13 +35,15 @@ class OAuth2LoginSuccessHandlerTest {
     OAuth2RedirectProperties redirectProperties = new OAuth2RedirectProperties();
     redirectProperties.setSuccessRedirectUri("http://localhost:3000/oauth2/success");
     RecordingOAuthAccountService accountService = new RecordingOAuthAccountService();
+    RecordingAuditLogService auditLogService = new RecordingAuditLogService();
     OAuth2LoginSuccessHandler successHandler =
         new OAuth2LoginSuccessHandler(
             accountService,
             new FixedJwtService(),
             cookieFactory(),
             redirectProperties,
-            new OAuth2LoginFailureHandler(redirectProperties));
+            new OAuth2LoginFailureHandler(redirectProperties, auditLogService),
+            auditLogService);
     MockHttpServletRequest request = new MockHttpServletRequest();
     request.getSession();
     MockHttpServletResponse response = new MockHttpServletResponse();
@@ -53,16 +59,26 @@ class OAuth2LoginSuccessHandlerTest {
     assertThat(response.getCookie("XSRF-TOKEN")).isNotNull();
     assertThat(response.getCookie("XSRF-TOKEN").isHttpOnly()).isFalse();
     assertThat(request.getSession(false)).isNull();
+    assertThat(auditLogService.eventType).isEqualTo(AuditEventType.OAUTH_LOGIN);
+    assertThat(auditLogService.outcome).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLogService.userId).isEqualTo(1);
   }
 
   @Test
   void oauthValidationFailureRedirectsToFailureUri() throws Exception {
     OAuth2RedirectProperties redirectProperties = new OAuth2RedirectProperties();
     redirectProperties.setFailureRedirectUri("http://localhost:3000/oauth2/failure");
-    OAuth2LoginFailureHandler failureHandler = new OAuth2LoginFailureHandler(redirectProperties);
+    RecordingAuditLogService auditLogService = new RecordingAuditLogService();
+    OAuth2LoginFailureHandler failureHandler =
+        new OAuth2LoginFailureHandler(redirectProperties, auditLogService);
     OAuth2LoginSuccessHandler successHandler =
         new OAuth2LoginSuccessHandler(
-            new RejectingOAuthAccountService(), null, null, redirectProperties, failureHandler);
+            new RejectingOAuthAccountService(),
+            null,
+            null,
+            redirectProperties,
+            failureHandler,
+            auditLogService);
     MockHttpServletResponse response = new MockHttpServletResponse();
 
     successHandler.onAuthenticationSuccess(
@@ -72,16 +88,26 @@ class OAuth2LoginSuccessHandlerTest {
 
     assertThat(response.getRedirectedUrl())
         .isEqualTo("http://localhost:3000/oauth2/failure?error=email_not_verified");
+    assertThat(auditLogService.eventType).isEqualTo(AuditEventType.OAUTH_LOGIN);
+    assertThat(auditLogService.outcome).isEqualTo(AuditOutcome.FAILURE);
+    assertThat(auditLogService.failureReason).isEqualTo("email_not_verified");
   }
 
   @Test
   void unsupportedAuthenticationRedirectsToFailureUri() throws Exception {
     OAuth2RedirectProperties redirectProperties = new OAuth2RedirectProperties();
     redirectProperties.setFailureRedirectUri("http://localhost:3000/oauth2/failure");
-    OAuth2LoginFailureHandler failureHandler = new OAuth2LoginFailureHandler(redirectProperties);
+    RecordingAuditLogService auditLogService = new RecordingAuditLogService();
+    OAuth2LoginFailureHandler failureHandler =
+        new OAuth2LoginFailureHandler(redirectProperties, auditLogService);
     OAuth2LoginSuccessHandler successHandler =
         new OAuth2LoginSuccessHandler(
-            new RejectingOAuthAccountService(), null, null, redirectProperties, failureHandler);
+            new RejectingOAuthAccountService(),
+            null,
+            null,
+            redirectProperties,
+            failureHandler,
+            auditLogService);
     MockHttpServletResponse response = new MockHttpServletResponse();
 
     successHandler.onAuthenticationSuccess(
@@ -89,6 +115,8 @@ class OAuth2LoginSuccessHandlerTest {
 
     assertThat(response.getRedirectedUrl())
         .isEqualTo("http://localhost:3000/oauth2/failure?error=unsupported_oauth_provider");
+    assertThat(auditLogService.outcome).isEqualTo(AuditOutcome.FAILURE);
+    assertThat(auditLogService.failureReason).isEqualTo("unsupported_oauth_provider");
   }
 
   private OAuth2User googleUser() {
@@ -157,6 +185,32 @@ class OAuth2LoginSuccessHandlerTest {
     @Override
     public String issueAccessToken(User user) {
       return "fixed-access-token";
+    }
+  }
+
+  private static class RecordingAuditLogService extends AuditLogService {
+
+    private AuditEventType eventType;
+    private AuditOutcome outcome;
+    private Integer userId;
+    private String failureReason;
+
+    RecordingAuditLogService() {
+      super(null, null);
+    }
+
+    @Override
+    public void record(
+        HttpServletRequest request,
+        AuditEventType eventType,
+        AuditOutcome outcome,
+        Integer statusCode,
+        Integer userId,
+        String failureReason) {
+      this.eventType = eventType;
+      this.outcome = outcome;
+      this.userId = userId;
+      this.failureReason = failureReason;
     }
   }
 }

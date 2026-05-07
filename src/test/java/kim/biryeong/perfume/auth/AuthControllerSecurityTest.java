@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
@@ -15,9 +16,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
+import kim.biryeong.perfume.audit.AuditEventType;
+import kim.biryeong.perfume.audit.AuditLog;
+import kim.biryeong.perfume.audit.AuditLogRepository;
+import kim.biryeong.perfume.audit.AuditOutcome;
 import kim.biryeong.perfume.auth.jwt.JwtService;
+import kim.biryeong.perfume.perfume.domain.Gender;
+import kim.biryeong.perfume.perfume.domain.Perfume;
+import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
+import kim.biryeong.perfume.review.repository.ReviewRepository;
+import kim.biryeong.perfume.review.repository.ReviewScentRepository;
+import kim.biryeong.perfume.review.repository.ReviewSeasonRepository;
 import kim.biryeong.perfume.user.domain.User;
 import kim.biryeong.perfume.user.repository.UserRepository;
+import kim.biryeong.perfume.wishlist.repository.WishlistRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,6 +53,18 @@ class AuthControllerSecurityTest {
 
   @Autowired private UserRepository userRepository;
 
+  @Autowired private AuditLogRepository auditLogRepository;
+
+  @Autowired private PerfumeRepository perfumeRepository;
+
+  @Autowired private ReviewRepository reviewRepository;
+
+  @Autowired private ReviewSeasonRepository reviewSeasonRepository;
+
+  @Autowired private ReviewScentRepository reviewScentRepository;
+
+  @Autowired private WishlistRepository wishlistRepository;
+
   @Autowired private JwtService jwtService;
 
   @Autowired private JwtEncoder jwtEncoder;
@@ -49,6 +73,12 @@ class AuthControllerSecurityTest {
 
   @BeforeEach
   void setUp() {
+    auditLogRepository.deleteAll();
+    wishlistRepository.deleteAll();
+    reviewScentRepository.deleteAll();
+    reviewSeasonRepository.deleteAll();
+    reviewRepository.deleteAll();
+    perfumeRepository.deleteAll();
     userRepository.deleteAll();
     user = userRepository.save(completedUser());
   }
@@ -78,6 +108,12 @@ class AuthControllerSecurityTest {
         .andExpect(cookie().httpOnly("XSRF-TOKEN", false))
         .andExpect(jsonPath("$.email").value("signup@example.com"))
         .andExpect(jsonPath("$.profileCompleted").value(true));
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_SIGNUP);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLog.getUserId()).isNotNull();
+    assertThat(auditLog.getRequestPath()).isEqualTo("/api/auth/signup");
   }
 
   @Test
@@ -127,6 +163,8 @@ class AuthControllerSecurityTest {
     mockMvc
         .perform(
             post("/api/auth/login")
+                .header("X-Forwarded-For", "203.0.113.10, 198.51.100.1")
+                .header("User-Agent", "MockBrowser/1.0")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     """
@@ -141,6 +179,59 @@ class AuthControllerSecurityTest {
         .andExpect(cookie().exists("XSRF-TOKEN"))
         .andExpect(cookie().httpOnly("XSRF-TOKEN", false))
         .andExpect(jsonPath("$.email").value("security@example.com"));
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_LOGIN);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+    assertThat(auditLog.getClientIp()).isEqualTo("203.0.113.10");
+    assertThat(auditLog.getUserAgent()).isEqualTo("MockBrowser/1.0");
+  }
+
+  @Test
+  void loginUsesRemoteAddressWhenRequestDoesNotComeFromTrustedProxy() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .with(
+                    request -> {
+                      request.setRemoteAddr("198.51.100.9");
+                      return request;
+                    })
+                .header("X-Forwarded-For", "203.0.113.10")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                    "email": "security@example.com",
+                    "password": "secret-password"
+                    }
+                    """))
+        .andExpect(status().isOk());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getClientIp()).isEqualTo("198.51.100.9");
+  }
+
+  @Test
+  void loginIgnoresClientSuppliedCloudflareIpHeader() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/login")
+                .header("CF-Connecting-IP", "203.0.113.200")
+                .header("X-Forwarded-For", "198.51.100.20")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                    "email": "security@example.com",
+                    "password": "secret-password"
+                    }
+                    """))
+        .andExpect(status().isOk());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getClientIp()).isEqualTo("198.51.100.20");
   }
 
   @Test
@@ -157,6 +248,12 @@ class AuthControllerSecurityTest {
 										}
 										"""))
         .andExpect(status().isUnauthorized());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_LOGIN);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.FAILURE);
+    assertThat(auditLog.getUserId()).isNull();
+    assertThat(auditLog.getFailureReason()).isEqualTo("HTTP_401");
   }
 
   @Test
@@ -167,11 +264,17 @@ class AuthControllerSecurityTest {
         .andExpect(jsonPath("$.email").value("security@example.com"))
         .andExpect(jsonPath("$.nickname").value("security"))
         .andExpect(jsonPath("$.profileCompleted").value(true));
+    assertThat(auditLogRepository.count()).isZero();
   }
 
   @Test
   void meRejectsMissingAuthentication() throws Exception {
     mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_CHECK);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.FAILURE);
+    assertThat(auditLog.getFailureReason()).isEqualTo("HTTP_401");
   }
 
   @Test
@@ -231,6 +334,54 @@ class AuthControllerSecurityTest {
                 .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
                 .header("X-XSRF-TOKEN", "csrf-token"))
         .andExpect(status().isNotFound());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.WISHLIST_ADD);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.FAILURE);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+  }
+
+  @Test
+  void wishlistCreateWritesSuccessAuditLog() throws Exception {
+    perfumeRepository.save(perfume(100L));
+
+    mockMvc
+        .perform(
+            post("/api/wishlist/100")
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token"))
+        .andExpect(status().isCreated());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.WISHLIST_ADD);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+    assertThat(auditLog.getRequestPath()).isEqualTo("/api/wishlist/100");
+  }
+
+  @Test
+  void wishlistDeleteWritesSuccessAuditLog() throws Exception {
+    perfumeRepository.save(perfume(102L));
+    mockMvc
+        .perform(
+            post("/api/wishlist/102")
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token"))
+        .andExpect(status().isCreated());
+    auditLogRepository.deleteAll();
+
+    mockMvc
+        .perform(
+            delete("/api/wishlist/102")
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token"))
+        .andExpect(status().isNoContent());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.WISHLIST_REMOVE);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+    assertThat(auditLog.getRequestPath()).isEqualTo("/api/wishlist/102");
   }
 
   @Test
@@ -278,6 +429,41 @@ class AuthControllerSecurityTest {
 										}
 										"""))
         .andExpect(status().isNotFound());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.REVIEW_CREATE);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.FAILURE);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+  }
+
+  @Test
+  void reviewCreateWritesSuccessAuditLog() throws Exception {
+    perfumeRepository.save(perfume(101L));
+
+    mockMvc
+        .perform(
+            post("/api/perfumes/101/reviews")
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                    "satisfaction": 5,
+                    "longevity": 2,
+                    "seasons": ["봄"],
+                    "scents": ["꽃 향"],
+                    "comment": "좋아요.",
+                    "disclaimerAgreed": true
+                    }
+                    """))
+        .andExpect(status().isCreated());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.REVIEW_CREATE);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+    assertThat(auditLog.getRequestPath()).isEqualTo("/api/perfumes/101/reviews");
   }
 
   @Test
@@ -302,6 +488,18 @@ class AuthControllerSecurityTest {
   }
 
   @Test
+  void preflightRequestDoesNotWriteAuditLog() throws Exception {
+    mockMvc
+        .perform(
+            options("/api/auth/signup")
+                .header("Origin", "http://localhost:3000")
+                .header("Access-Control-Request-Method", "POST"))
+        .andExpect(status().isOk());
+
+    assertThat(auditLogRepository.count()).isZero();
+  }
+
+  @Test
   void profileCompletionRequiresCsrfToken() throws Exception {
     mockMvc
         .perform(
@@ -319,6 +517,12 @@ class AuthControllerSecurityTest {
 										}
 										"""))
         .andExpect(status().isForbidden());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_PROFILE_UPDATE);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.FAILURE);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+    assertThat(auditLog.getFailureReason()).isEqualTo("HTTP_403");
   }
 
   @Test
@@ -401,6 +605,11 @@ class AuthControllerSecurityTest {
         .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("PERFUME_ACCESS_TOKEN=")))
         .andExpect(cookie().maxAge("PERFUME_ACCESS_TOKEN", 0))
         .andExpect(cookie().maxAge("XSRF-TOKEN", 0));
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_LOGOUT);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
   }
 
   @Test
@@ -471,5 +680,21 @@ class AuthControllerSecurityTest {
     completedUser.setPhoneNumber("01000000000");
     completedUser.setProfileCompleted(true);
     return completedUser;
+  }
+
+  private Perfume perfume(Long id) {
+    Perfume perfume = new Perfume();
+    perfume.setId(id);
+    perfume.setName("Audit Perfume");
+    perfume.setBrand("Audit Brand");
+    perfume.setGender(Gender.U);
+    perfume.setImageUrl("https://example.com/perfume.png");
+    perfume.setDescription("Audit test perfume");
+    return perfume;
+  }
+
+  private AuditLog onlyAuditLog() {
+    assertThat(auditLogRepository.count()).isEqualTo(1L);
+    return auditLogRepository.findAll().getFirst();
   }
 }
