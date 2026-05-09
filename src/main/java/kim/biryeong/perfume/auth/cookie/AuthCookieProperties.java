@@ -9,7 +9,7 @@ public class AuthCookieProperties {
 
   private boolean secure;
 
-  private String sameSite = "Lax";
+  private String sameSite = "None";
 
   public String getName() {
     return name;
