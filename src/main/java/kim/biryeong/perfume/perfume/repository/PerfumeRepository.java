@@ -48,4 +48,22 @@ public interface PerfumeRepository extends JpaRepository<Perfume, Long> {
       @Param("accords") List<String> accords,
       @Param("accordCount") int accordCount,
       Pageable pageable);
+
+  @Query(
+      value =
+          "SELECT p.id AS id, p.image_url AS imageUrl, p.brand AS brand, p.name AS name, p.gender AS gender, "
+              + "COALESCE(AVG(r.satisfaction), 0) AS rating, COUNT(DISTINCT r.user_id) AS reviewCount "
+              + "FROM perfumes p "
+              + "JOIN perfume_accords pa ON p.id = pa.perfume_id "
+              + "LEFT JOIN reviews r ON p.id = r.perfume_id "
+              + "WHERE pa.accord_name = :accordName "
+              + "GROUP BY p.id, p.image_url, p.brand, p.name, p.gender "
+              + "ORDER BY MAX(pa.ratio) DESC, p.name ASC",
+      countQuery =
+          "SELECT COUNT(DISTINCT p.id) FROM perfumes p "
+              + "JOIN perfume_accords pa ON p.id = pa.perfume_id "
+              + "WHERE pa.accord_name = :accordName",
+      nativeQuery = true)
+  Page<PerfumeCardProjection> findAllByAccordNameOrderByRatioDesc(
+      @Param("accordName") String accordName, Pageable pageable);
 }
