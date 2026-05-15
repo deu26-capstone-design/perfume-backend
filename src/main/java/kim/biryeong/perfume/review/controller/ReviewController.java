@@ -1,14 +1,15 @@
 package kim.biryeong.perfume.review.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import kim.biryeong.perfume.audit.AuditEventType;
 import kim.biryeong.perfume.audit.AuditLogRequestAttributes;
 import kim.biryeong.perfume.auth.AuthenticatedUserIds;
+import kim.biryeong.perfume.review.dto.ReviewCreateResponse;
 import kim.biryeong.perfume.review.dto.ReviewListResponse;
 import kim.biryeong.perfume.review.dto.ReviewRequest;
+import kim.biryeong.perfume.review.dto.ReviewUpdateRequest;
 import kim.biryeong.perfume.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,7 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-/** 향수 리뷰 목록 조회와 리뷰 작성 API를 제공한다. */
+/** 향수 리뷰 목록 조회, 리뷰 작성, 수정, 삭제 API를 제공한다. */
 @RestController
 @RequestMapping("/api/perfumes")
 @RequiredArgsConstructor
@@ -54,11 +55,37 @@ public class ReviewController {
   @ResponseStatus(HttpStatus.CREATED)
   public void createReview(
       @PathVariable @Min(1) Long id,
-      HttpServletRequest servletRequest,
       Authentication authentication,
       @RequestBody @Valid ReviewRequest request) {
-    Integer userId = AuthenticatedUserIds.currentUserId(authentication);
-    AuditLogRequestAttributes.mark(servletRequest, AuditEventType.REVIEW_CREATE, userId);
-    reviewService.createReview(id, userId, request);
+    return reviewService.createReview(
+        id, AuthenticatedUserIds.currentUserId(authentication), request);
+  }
+
+  /**
+   * 리뷰를 수정한다. 본인이 작성한 리뷰만 수정할 수 있다.
+   *
+   * @param id 수정할 리뷰 ID. 1 이상이어야 한다.
+   * @param authentication JWT subject를 포함한 Spring Security 인증 객체
+   * @param request 만족도, 지속력, 계절, 향 느낌, 코멘트, 면책 동의 여부를 담은 수정 요청 본문
+   */
+  @PatchMapping("/reviews/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void updateReview(
+      @PathVariable @Min(1) Long id,
+      Authentication authentication,
+      @RequestBody @Valid ReviewUpdateRequest request) {
+    reviewService.updateReview(id, AuthenticatedUserIds.currentUserId(authentication), request);
+  }
+
+  /**
+   * 리뷰를 삭제한다. 본인이 작성한 리뷰만 삭제할 수 있다.
+   *
+   * @param id 삭제할 리뷰 ID. 1 이상이어야 한다.
+   * @param authentication JWT subject를 포함한 Spring Security 인증 객체
+   */
+  @DeleteMapping("/reviews/{id}")
+  @ResponseStatus(HttpStatus.NO_CONTENT)
+  public void deleteReview(@PathVariable @Min(1) Long id, Authentication authentication) {
+    reviewService.deleteReview(id, AuthenticatedUserIds.currentUserId(authentication));
   }
 }
