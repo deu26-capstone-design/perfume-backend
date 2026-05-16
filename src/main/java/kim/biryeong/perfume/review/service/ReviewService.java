@@ -189,12 +189,14 @@ public class ReviewService {
     review.setComment(request.getComment());
 
     reviewSeasonRepository.deleteAll(reviewSeasonRepository.findByReviewIds(List.of(reviewId)));
+    reviewSeasonRepository.flush();
     if (!seasonEnums.isEmpty()) {
       reviewSeasonRepository.saveAll(
           seasonEnums.stream().map(season -> new ReviewSeason(review, season)).toList());
     }
 
     reviewScentRepository.deleteAll(reviewScentRepository.findByReviewIds(List.of(reviewId)));
+    reviewScentRepository.flush();
     if (!scentEnums.isEmpty()) {
       reviewScentRepository.saveAll(
           scentEnums.stream().map(scent -> new ReviewScent(null, review, scent)).toList());
