@@ -3,8 +3,6 @@ package kim.biryeong.perfume.review.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import kim.biryeong.perfume.audit.AuditEventType;
-import kim.biryeong.perfume.audit.AuditLogRequestAttributes;
 import kim.biryeong.perfume.auth.AuthenticatedUserIds;
 import kim.biryeong.perfume.review.dto.ReviewCreateResponse;
 import kim.biryeong.perfume.review.dto.ReviewListResponse;
