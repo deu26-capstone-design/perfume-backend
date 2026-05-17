@@ -53,7 +53,7 @@ public class ReviewController {
    */
   @PostMapping("/{id}/reviews")
   @ResponseStatus(HttpStatus.CREATED)
-  public void createReview(
+  public ReviewCreateResponse createReview(
       @PathVariable @Min(1) Long id,
       Authentication authentication,
       @RequestBody @Valid ReviewRequest request) {
