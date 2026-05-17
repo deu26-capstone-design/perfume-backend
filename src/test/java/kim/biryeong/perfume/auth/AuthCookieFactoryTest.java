@@ -24,7 +24,7 @@ class AuthCookieFactoryTest {
     assertThat(cookie).contains("Max-Age=0");
     assertThat(cookie).contains("Path=/");
     assertThat(cookie).contains("HttpOnly");
-    assertThat(cookie).contains("SameSite=Lax");
+    assertThat(cookie).contains("SameSite=None");
   }
 
   @Test
@@ -57,7 +57,7 @@ class AuthCookieFactoryTest {
     assertThat(cookie).contains("Max-Age=3600");
     assertThat(cookie).contains("Path=/");
     assertThat(cookie).doesNotContain("HttpOnly");
-    assertThat(cookie).contains("SameSite=Lax");
+    assertThat(cookie).contains("SameSite=None");
   }
 
   @Test
