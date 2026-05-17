@@ -25,7 +25,6 @@ public class AuditRetentionService {
     if (retentionDays <= 0) {
       return;
     }
-    auditLogRepository.deleteByOccurredAtBefore(
-        Instant.now().minus(retentionDays, ChronoUnit.DAYS));
+    auditLogRepository.deleteExpiredBefore(Instant.now().minus(retentionDays, ChronoUnit.DAYS));
   }
 }

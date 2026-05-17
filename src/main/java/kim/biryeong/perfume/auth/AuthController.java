@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
  * 회원가입, 로그인, 내 정보 조회, 프로필 완성, 로그아웃을 제공하는 로컬 인증 API 컨트롤러입니다.
@@ -140,6 +141,8 @@ public class AuthController {
     try {
       Integer userId = AuthenticatedUserIds.currentUserId(authentication);
       AuditLogRequestAttributes.mark(request, AuditEventType.AUTH_LOGOUT, userId);
+    } catch (ResponseStatusException exception) {
+      AuditLogRequestAttributes.mark(request, AuditEventType.AUTH_LOGOUT, null);
     } finally {
       expireAuthCookies(request, response);
     }

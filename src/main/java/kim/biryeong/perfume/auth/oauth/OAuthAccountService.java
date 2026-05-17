@@ -39,6 +39,9 @@ public class OAuthAccountService {
   }
 
   private User connectOAuthAccount(User user, OAuthProfile profile) {
+    if (user.getPassword() != null) {
+      throw oauthFailure("oauth_account_conflict");
+    }
     if (!profile.emailTrustedForLinking()) {
       throw oauthFailure("oauth_account_conflict");
     }

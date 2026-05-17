@@ -20,7 +20,7 @@ class AuditRetentionServiceTest {
 
     retentionService.deleteExpiredAuditLogs();
 
-    verify(auditLogRepository).deleteByOccurredAtBefore(any(Instant.class));
+    verify(auditLogRepository).deleteExpiredBefore(any(Instant.class));
   }
 
   @Test
@@ -33,6 +33,6 @@ class AuditRetentionServiceTest {
 
     retentionService.deleteExpiredAuditLogs();
 
-    verify(auditLogRepository, never()).deleteByOccurredAtBefore(any());
+    verify(auditLogRepository, never()).deleteExpiredBefore(any());
   }
 }

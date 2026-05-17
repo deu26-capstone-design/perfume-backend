@@ -53,18 +53,17 @@ class GoogleOAuthUserServiceTest {
   }
 
   @Test
-  void googleLoginConnectsExistingEmailUser() {
+  void googleLoginRejectsExistingPasswordUserWithoutVerifiedEmailAssurance() {
     User existing = completedUser("existing@example.com", "existing");
     userRepository.saveAndFlush(existing);
 
-    User user =
-        oauthAccountService.findOrCreateUser(
-            "google", googleUser("google-sub-2", "existing@example.com", true, "Existing"));
-
-    assertThat(user.getUserId()).isEqualTo(existing.getUserId());
-    assertThat(user.getOauthProvider()).isEqualTo(OAuthProvider.GOOGLE);
-    assertThat(user.getOauthProviderId()).isEqualTo("google-sub-2");
-    assertThat(user.isProfileCompleted()).isTrue();
+    assertThatThrownBy(
+            () ->
+                oauthAccountService.findOrCreateUser(
+                    "google", googleUser("google-sub-2", "existing@example.com", true, "Existing")))
+        .isInstanceOf(OAuth2AuthenticationException.class)
+        .extracting("error.errorCode")
+        .isEqualTo("oauth_account_conflict");
   }
 
   @Test

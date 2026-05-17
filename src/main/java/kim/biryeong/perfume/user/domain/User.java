@@ -7,7 +7,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "users")
+@Table(
+    name = "users",
+    uniqueConstraints =
+        @UniqueConstraint(
+            name = "uk_users_oauth_provider_id",
+            columnNames = {"oauth_provider", "oauth_provider_id"}))
 @Getter
 @Setter
 public class User {

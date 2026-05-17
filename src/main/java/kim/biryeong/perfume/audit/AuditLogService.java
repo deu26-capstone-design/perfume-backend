@@ -48,13 +48,13 @@ public class AuditLogService {
     if (!isTrustedProxy(request.getRemoteAddr())) {
       return request.getRemoteAddr();
     }
-    String forwardedFor = request.getHeader("X-Forwarded-For");
-    if (StringUtils.hasText(forwardedFor)) {
-      return forwardedFor.split(",", 2)[0].trim();
-    }
     String realIp = request.getHeader("X-Real-IP");
     if (StringUtils.hasText(realIp)) {
       return realIp;
+    }
+    String forwardedFor = request.getHeader("X-Forwarded-For");
+    if (StringUtils.hasText(forwardedFor) && !forwardedFor.contains(",")) {
+      return forwardedFor.trim();
     }
     return request.getRemoteAddr();
   }

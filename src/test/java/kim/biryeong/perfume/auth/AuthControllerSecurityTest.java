@@ -134,7 +134,8 @@ class AuthControllerSecurityTest {
 										"phoneNumber": "01012345678"
 										}
 										"""))
-        .andExpect(status().isConflict());
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.message").value("email already exists"));
   }
 
   @Test
@@ -164,6 +165,7 @@ class AuthControllerSecurityTest {
         .perform(
             post("/api/auth/login")
                 .header("X-Forwarded-For", "203.0.113.10, 198.51.100.1")
+                .header("X-Real-IP", "203.0.113.10")
                 .header("User-Agent", "MockBrowser/1.0")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
@@ -247,7 +249,8 @@ class AuthControllerSecurityTest {
 										"password": "wrong-password"
 										}
 										"""))
-        .andExpect(status().isUnauthorized());
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.message").value("invalid credentials"));
 
     AuditLog auditLog = onlyAuditLog();
     assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_LOGIN);
@@ -613,28 +616,50 @@ class AuthControllerSecurityTest {
   }
 
   @Test
-  void logoutRejectsMissingAuthentication() throws Exception {
-    mockMvc.perform(post("/api/auth/logout")).andExpect(status().isUnauthorized());
+  void logoutRequiresCsrfTokenForCookieAuthentication() throws Exception {
+    mockMvc
+        .perform(post("/api/auth/logout").cookie(authCookie()))
+        .andExpect(status().isForbidden());
   }
 
   @Test
-  void logoutRejectsNonJwtAuthentication() throws Exception {
+  void logoutExpiresCookiesWithoutAuthentication() throws Exception {
     mockMvc
-        .perform(post("/api/auth/logout").with(user("session-user")))
-        .andExpect(status().isUnauthorized())
+        .perform(post("/api/auth/logout"))
+        .andExpect(status().isNoContent())
         .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("PERFUME_ACCESS_TOKEN=")))
         .andExpect(cookie().maxAge("PERFUME_ACCESS_TOKEN", 0))
         .andExpect(cookie().maxAge("XSRF-TOKEN", 0));
   }
 
   @Test
-  void logoutRejectsMalformedJwtSubjectAndExpiresAuthCookies() throws Exception {
+  void logoutExpiresCookiesForNonJwtAuthentication() throws Exception {
+    mockMvc
+        .perform(post("/api/auth/logout").with(user("session-user")))
+        .andExpect(status().isNoContent())
+        .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("PERFUME_ACCESS_TOKEN=")))
+        .andExpect(cookie().maxAge("PERFUME_ACCESS_TOKEN", 0))
+        .andExpect(cookie().maxAge("XSRF-TOKEN", 0));
+  }
+
+  @Test
+  void logoutExpiresCookiesForMalformedJwtSubject() throws Exception {
     mockMvc
         .perform(
             post("/api/auth/logout")
                 .cookie(invalidSubjectAuthCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
                 .header("X-XSRF-TOKEN", "csrf-token"))
-        .andExpect(status().isUnauthorized())
+        .andExpect(status().isNoContent())
+        .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("PERFUME_ACCESS_TOKEN=")))
+        .andExpect(cookie().maxAge("PERFUME_ACCESS_TOKEN", 0))
+        .andExpect(cookie().maxAge("XSRF-TOKEN", 0));
+  }
+
+  @Test
+  void logoutExpiresCookiesForUndecodableAuthCookie() throws Exception {
+    mockMvc
+        .perform(post("/api/auth/logout").cookie(new Cookie("PERFUME_ACCESS_TOKEN", "bad-token")))
+        .andExpect(status().isNoContent())
         .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("PERFUME_ACCESS_TOKEN=")))
         .andExpect(cookie().maxAge("PERFUME_ACCESS_TOKEN", 0))
         .andExpect(cookie().maxAge("XSRF-TOKEN", 0));
