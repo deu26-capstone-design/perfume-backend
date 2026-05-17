@@ -28,7 +28,8 @@
 ## 인증
 
 - 공개 조회 API는 인증 없이 호출할 수 있습니다.
-- `/api/auth/me`, `/api/auth/me/profile`, `/api/auth/logout`, 리뷰 작성, 위시리스트 API는 JWT 인증이 필요합니다.
+- `/api/auth/me`, `/api/auth/me/profile`, 리뷰 작성, 위시리스트 API는 JWT 인증이 필요합니다.
+- `/api/auth/logout`은 만료되었거나 손상된 HttpOnly 인증 쿠키도 브라우저에서 제거할 수 있도록 인증 실패 시에도 쿠키 만료 응답을 반환합니다. 유효한 JWT 쿠키 기반 요청은 다른 상태 변경 API와 같이 CSRF 토큰이 필요합니다.
 - JWT는 `Authorization: Bearer {token}` 헤더 또는 `PERFUME_ACCESS_TOKEN` HttpOnly 쿠키로 전달합니다.
 - 회원가입, 로그인, OAuth 로그인 성공 응답은 `PERFUME_ACCESS_TOKEN`과 함께 브라우저에서 읽을 수 있는 `XSRF-TOKEN` 쿠키를 발급합니다.
 - 프론트엔드가 API와 다른 사이트에서 호스팅되면 API 도메인의 쿠키를 JavaScript로 읽을 수 없습니다. 이 경우 인증 후 `GET /api/auth/csrf`를 호출해 응답 본문의 `csrfToken`을 보관하고 상태 변경 요청의 `X-XSRF-TOKEN` 헤더로 보내야 합니다.
@@ -113,8 +114,8 @@ POST /api/auth/signup
 `Set-Cookie` 헤더:
 
 ```http
-Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; SameSite=Lax
-Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; SameSite=Lax
+Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; Secure; SameSite=None
+Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; Secure; SameSite=None
 ```
 
 `SameSite` 값은 `app.auth.cookie.same-site` 설정을 따릅니다. `https://thescentlab.vercel.app`에서 API 도메인을 직접 호출하는 운영 배포에서는 `SameSite=None; Secure`가 필요합니다.
@@ -169,8 +170,8 @@ POST /api/auth/login
 `Set-Cookie` 헤더:
 
 ```http
-Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; SameSite=Lax
-Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; SameSite=Lax
+Set-Cookie: PERFUME_ACCESS_TOKEN={jwt}; Path=/; HttpOnly; Secure; SameSite=None
+Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; Secure; SameSite=None
 ```
 
 `SameSite` 값은 `app.auth.cookie.same-site` 설정을 따릅니다. `https://thescentlab.vercel.app`에서 API 도메인을 직접 호출하는 운영 배포에서는 `SameSite=None; Secure`가 필요합니다.
@@ -229,7 +230,7 @@ GET /api/auth/csrf
 `Set-Cookie` 헤더:
 
 ```http
-Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; SameSite=Lax
+Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; Secure; SameSite=None
 ```
 
 응답 본문:
@@ -282,7 +283,7 @@ GET /api/auth/me
 POST /api/auth/logout
 ```
 
-현재 인증 쿠키와 CSRF 쿠키를 만료시킵니다. JWT 쿠키 기반 요청이므로 `X-XSRF-TOKEN` 헤더가 필요합니다.
+현재 인증 쿠키와 CSRF 쿠키를 만료시킵니다. 유효한 JWT 쿠키 기반 요청은 `X-XSRF-TOKEN` 헤더가 필요합니다. JWT가 없거나 디코딩할 수 없는 경우에도 브라우저의 HttpOnly 쿠키를 제거할 수 있도록 만료 쿠키를 응답합니다.
 
 #### Response `204 No Content`
 
@@ -291,8 +292,8 @@ POST /api/auth/logout
 `Set-Cookie` 헤더:
 
 ```http
-Set-Cookie: PERFUME_ACCESS_TOKEN=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax
-Set-Cookie: XSRF-TOKEN=; Path=/; Max-Age=0; SameSite=Lax
+Set-Cookie: PERFUME_ACCESS_TOKEN=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=None
+Set-Cookie: XSRF-TOKEN=; Path=/; Max-Age=0; Secure; SameSite=None
 ```
 
 ## Accord API
@@ -576,7 +577,30 @@ POST /api/perfumes/{id}/reviews
 
 #### Response `201 Created`
 
-응답 본문은 없습니다.
+```json
+{
+  "rating": 4.6,
+  "totalReviewCount": 12,
+  "satisfaction": {
+    "1": 0,
+    "2": 0,
+    "3": 8,
+    "4": 25,
+    "5": 67
+  },
+  "longevity": {
+    "1": 10,
+    "2": 50,
+    "3": 40
+  },
+  "seasons": {
+    "봄": 42,
+    "여름": 17,
+    "가을": 33,
+    "겨울": 8
+  }
+}
+```
 
 #### Error cases
 

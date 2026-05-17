@@ -26,7 +26,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 - JWT는 `PERFUME_ACCESS_TOKEN` `HttpOnly` 쿠키로만 전달됩니다.
 - 프론트는 JWT를 직접 읽거나 저장하지 않습니다.
 - 로그인 또는 OAuth 성공 후 `GET /api/auth/csrf`를 호출해서 `csrfToken`을 받아둡니다.
-- `POST`, `PATCH`, `DELETE` 요청에는 `X-XSRF-TOKEN` 헤더를 보냅니다.
+- `POST`, `PATCH`, `DELETE` 요청에는 `X-XSRF-TOKEN` 헤더를 보냅니다. 로그아웃은 만료되었거나 손상된 HttpOnly 쿠키 제거를 위해 인증 실패 시에도 만료 쿠키를 내려주지만, 유효한 쿠키 인증 요청에는 CSRF 토큰이 필요합니다.
 - `401`이면 로그인되지 않은 상태로 처리합니다.
 - `403`이면 CSRF 토큰이 없거나 오래된 상태이므로 `/api/auth/csrf`를 다시 호출합니다.
 
@@ -238,6 +238,8 @@ export async function logout() {
 }
 ```
 
+만료되었거나 손상된 인증 쿠키 때문에 `/api/auth/csrf`가 실패해도 `/api/auth/logout`은 호출할 수 있습니다. 이 경우 백엔드는 인증 쿠키와 CSRF 쿠키를 만료시키는 `204` 응답을 반환합니다.
+
 ## 위시리스트와 리뷰 작성
 
 위시리스트 추가, 위시리스트 삭제, 리뷰 작성도 같은 규칙을 사용합니다.
@@ -329,8 +331,12 @@ server {
         proxy_pass http://127.0.0.1:8080;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
+        proxy_set_header Forwarded "";
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Host $host;
+        proxy_set_header X-Forwarded-Port 443;
+        proxy_set_header X-Forwarded-Prefix "";
         proxy_set_header CF-Connecting-IP "";
         proxy_set_header X-Forwarded-Proto https;
     }
@@ -338,6 +344,8 @@ server {
 ```
 
 CORS는 Spring 백엔드가 처리하므로 Nginx에서 `Access-Control-Allow-Origin: *` 같은 헤더를 따로 추가하지 마십시오. 쿠키 인증에서는 `*` origin과 credentials를 같이 쓸 수 없습니다.
+
+Spring은 `server.forward-headers-strategy=framework`로 프록시 헤더를 해석합니다. 따라서 Nginx는 클라이언트가 보낸 `Forwarded`, `X-Forwarded-*` 값을 그대로 전달하지 말고 위 예시처럼 덮어쓰거나 빈 값으로 제거해야 합니다.
 
 감사 로그의 `client_ip`는 백엔드가 신뢰한 프록시에서 온 요청일 때만 `X-Forwarded-For` 또는 `X-Real-IP`를 사용합니다. 운영에서 Nginx 컨테이너/호스트 IP가 `127.0.0.1`이 아니면 `APP_AUDIT_TRUSTED_PROXY_ADDRESSES`에 해당 IP를 추가하십시오. 공격자가 보낸 기존 `X-Forwarded-For` 값을 이어붙이지 않도록 `$proxy_add_x_forwarded_for` 대신 `$remote_addr`로 덮어씁니다. Cloudflare를 Nginx 앞에 직접 두지 않는 구성에서는 클라이언트가 보낸 `CF-Connecting-IP`를 빈 값으로 덮어씁니다.
 
