@@ -13,9 +13,11 @@ import kim.biryeong.perfume.review.domain.ReviewScent;
 import kim.biryeong.perfume.review.domain.ReviewSeason;
 import kim.biryeong.perfume.review.domain.ScentName;
 import kim.biryeong.perfume.review.domain.Season;
+import kim.biryeong.perfume.review.dto.ReviewCreateResponse;
 import kim.biryeong.perfume.review.dto.ReviewItemDto;
 import kim.biryeong.perfume.review.dto.ReviewListResponse;
 import kim.biryeong.perfume.review.dto.ReviewRequest;
+import kim.biryeong.perfume.review.dto.ReviewUpdateRequest;
 import kim.biryeong.perfume.review.repository.ReviewRepository;
 import kim.biryeong.perfume.review.repository.ReviewScentRepository;
 import kim.biryeong.perfume.review.repository.ReviewSeasonRepository;
@@ -41,7 +43,7 @@ public class ReviewService {
   private final ReviewScentRepository reviewScentRepository;
 
   @Transactional
-  public void createReview(Long perfumeId, Integer userId, ReviewRequest request) {
+  public ReviewCreateResponse createReview(Long perfumeId, Integer userId, ReviewRequest request) {
     if (request.getDisclaimerAgreed() == null || !request.getDisclaimerAgreed()) {
       throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "면책 조항에 동의해야 합니다.");
     }
@@ -87,6 +89,17 @@ public class ReviewService {
           scentEnums.stream().map(scent -> new ReviewScent(null, review, scent)).toList();
       reviewScentRepository.saveAll(scents);
     }
+
+    List<Review> reviews = reviewRepository.findByPerfumeId(perfumeId);
+    List<ReviewSeason> reviewSeasons = reviewSeasonRepository.findByPerfumeId(perfumeId);
+    long reviewCount = reviews.size();
+    double rating =
+        Math.round(reviews.stream().mapToInt(Review::getSatisfaction).average().orElse(0.0) * 10.0)
+            / 10.0;
+    StatsDto stats = buildStats(reviews, reviewSeasons, reviewCount);
+
+    return new ReviewCreateResponse(
+        rating, reviewCount, stats.getSatisfaction(), stats.getLongevity(), stats.getSeasons());
   }
 
   @Transactional(readOnly = true)
@@ -151,6 +164,59 @@ public class ReviewService {
 
     Page<ReviewItemDto> dtoPage = new PageImpl<>(dtos, pageable, reviewPage.getTotalElements());
     return new ReviewListResponse(dtoPage);
+  }
+
+  @Transactional
+  public void updateReview(Long reviewId, Integer userId, ReviewUpdateRequest request) {
+    if (request.getDisclaimerAgreed() == null || !request.getDisclaimerAgreed()) {
+      throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "면책 조항에 동의해야 합니다.");
+    }
+
+    Review review =
+        reviewRepository
+            .findById(reviewId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 리뷰입니다."));
+
+    if (!review.getUser().getUserId().equals(userId)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인의 리뷰만 수정할 수 있습니다.");
+    }
+
+    List<Season> seasonEnums = toSeasonEnums(request.getSeasons());
+    List<ScentName> scentEnums = toScentEnums(request.getScents());
+
+    review.setSatisfaction(request.getSatisfaction());
+    review.setLongevity(request.getLongevity());
+    review.setComment(request.getComment());
+
+    reviewSeasonRepository.deleteAll(reviewSeasonRepository.findByReviewIds(List.of(reviewId)));
+    reviewSeasonRepository.flush();
+    if (!seasonEnums.isEmpty()) {
+      reviewSeasonRepository.saveAll(
+          seasonEnums.stream().map(season -> new ReviewSeason(review, season)).toList());
+    }
+
+    reviewScentRepository.deleteAll(reviewScentRepository.findByReviewIds(List.of(reviewId)));
+    reviewScentRepository.flush();
+    if (!scentEnums.isEmpty()) {
+      reviewScentRepository.saveAll(
+          scentEnums.stream().map(scent -> new ReviewScent(null, review, scent)).toList());
+    }
+  }
+
+  @Transactional
+  public void deleteReview(Long reviewId, Integer userId) {
+    Review review =
+        reviewRepository
+            .findById(reviewId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 리뷰입니다."));
+
+    if (!review.getUser().getUserId().equals(userId)) {
+      throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인의 리뷰만 삭제할 수 있습니다.");
+    }
+
+    reviewSeasonRepository.deleteAll(reviewSeasonRepository.findByReviewIds(List.of(reviewId)));
+    reviewScentRepository.deleteAll(reviewScentRepository.findByReviewIds(List.of(reviewId)));
+    reviewRepository.delete(review);
   }
 
   private List<Season> toSeasonEnums(List<String> seasonValues) {

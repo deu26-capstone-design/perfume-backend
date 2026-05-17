@@ -1,0 +1,14 @@
+package kim.biryeong.perfume.audit;
+
+public enum AuditEventType {
+  API_MUTATION,
+  AUTH_CHECK,
+  AUTH_LOGIN,
+  AUTH_LOGOUT,
+  AUTH_PROFILE_UPDATE,
+  AUTH_SIGNUP,
+  OAUTH_LOGIN,
+  REVIEW_CREATE,
+  WISHLIST_ADD,
+  WISHLIST_REMOVE
+}

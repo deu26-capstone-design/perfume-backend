@@ -1,0 +1,149 @@
+### Perfume Backend HTTP Client Tests
+### Run with IntelliJ IDEA HTTP Client.
+### Run signup or login, then "Issue CSRF token" before protected mutation requests.
+### The response scripts store PERFUME_ACCESS_TOKEN and XSRF-TOKEN into global variables.
+
+@baseUrl = https://perfume.biryeong.kim
+@email = local-login-test@example.com
+@password = secret-password
+@name = 테스트유저
+@nickname = local_test_user
+@gender = F
+@birthDate = 1999-05-01
+@phoneNumber = 01012345678
+
+### Local signup
+POST {{baseUrl}}/api/auth/signup
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}",
+  "name": "{{name}}",
+  "nickname": "{{nickname}}",
+  "gender": "{{gender}}",
+  "birthDate": "{{birthDate}}",
+  "phoneNumber": "{{phoneNumber}}"
+}
+
+> {%
+  const setCookie = response.headers.valuesOf("Set-Cookie").join("\n");
+  const accessToken = setCookie.match(/PERFUME_ACCESS_TOKEN=([^;]+)/);
+  const xsrfToken = setCookie.match(/XSRF-TOKEN=([^;]+)/);
+  if (accessToken) {
+    client.global.set("accessToken", accessToken[1]);
+  }
+  if (xsrfToken) {
+    client.global.set("xsrfToken", xsrfToken[1]);
+  }
+%}
+
+### Local login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+> {%
+  const setCookie = response.headers.valuesOf("Set-Cookie").join("\n");
+  const accessToken = setCookie.match(/PERFUME_ACCESS_TOKEN=([^;]+)/);
+  const xsrfToken = setCookie.match(/XSRF-TOKEN=([^;]+)/);
+  if (accessToken) {
+    client.global.set("accessToken", accessToken[1]);
+  }
+  if (xsrfToken) {
+    client.global.set("xsrfToken", xsrfToken[1]);
+  }
+%}
+
+### Current user
+GET {{baseUrl}}/api/auth/me
+Cookie: PERFUME_ACCESS_TOKEN={{accessToken}}
+
+### Issue CSRF token for cookie-auth mutation requests
+GET {{baseUrl}}/api/auth/csrf
+Cookie: PERFUME_ACCESS_TOKEN={{accessToken}}
+
+> {%
+  const body = typeof response.body === "string" ? JSON.parse(response.body) : response.body;
+  const setCookie = response.headers.valuesOf("Set-Cookie").join("\n");
+  const xsrfToken = setCookie.match(/XSRF-TOKEN=([^;]+)/);
+  if (body.csrfToken) {
+    client.global.set("xsrfToken", body.csrfToken);
+  } else if (xsrfToken) {
+    client.global.set("xsrfToken", xsrfToken[1]);
+  }
+%}
+
+### Complete current user profile
+PATCH {{baseUrl}}/api/auth/me/profile
+Content-Type: application/json
+Cookie: PERFUME_ACCESS_TOKEN={{accessToken}}; XSRF-TOKEN={{xsrfToken}}
+X-XSRF-TOKEN: {{xsrfToken}}
+
+{
+  "name": "{{name}}",
+  "nickname": "{{nickname}}",
+  "gender": "{{gender}}",
+  "birthDate": "{{birthDate}}",
+  "phoneNumber": "{{phoneNumber}}"
+}
+
+### List accords
+GET {{baseUrl}}/api/accords
+
+### List perfumes
+GET {{baseUrl}}/api/perfumes?page=0&size=10&sort=rating_desc
+
+### Search perfumes
+GET {{baseUrl}}/api/perfumes?keyword=clean&page=0&size=10&sort=rating_desc
+
+### Filter perfumes by gender and accord
+GET {{baseUrl}}/api/perfumes?gender=U&accord=floral&page=0&size=10&sort=rating_desc
+
+### Perfume detail
+@perfumeId = 1
+GET {{baseUrl}}/api/perfumes/{{perfumeId}}
+
+### Perfume reviews
+GET {{baseUrl}}/api/perfumes/{{perfumeId}}/reviews?page=0&size=10
+
+### Create review as current JWT user
+POST {{baseUrl}}/api/perfumes/{{perfumeId}}/reviews
+Content-Type: application/json
+Cookie: PERFUME_ACCESS_TOKEN={{accessToken}}; XSRF-TOKEN={{xsrfToken}}
+X-XSRF-TOKEN: {{xsrfToken}}
+
+{
+  "satisfaction": 5,
+  "longevity": 2,
+  "seasons": ["봄"],
+  "scents": ["꽃 향"],
+  "comment": "HTTP Client 테스트 리뷰입니다.",
+  "disclaimerAgreed": true
+}
+
+### Add perfume to wishlist
+POST {{baseUrl}}/api/wishlist/{{perfumeId}}
+Cookie: PERFUME_ACCESS_TOKEN={{accessToken}}; XSRF-TOKEN={{xsrfToken}}
+X-XSRF-TOKEN: {{xsrfToken}}
+
+### Get current user's wishlist
+GET {{baseUrl}}/api/wishlist
+Cookie: PERFUME_ACCESS_TOKEN={{accessToken}}
+
+### Remove perfume from wishlist
+DELETE {{baseUrl}}/api/wishlist/{{perfumeId}}
+Cookie: PERFUME_ACCESS_TOKEN={{accessToken}}; XSRF-TOKEN={{xsrfToken}}
+X-XSRF-TOKEN: {{xsrfToken}}
+
+### Logout
+POST {{baseUrl}}/api/auth/logout
+Cookie: PERFUME_ACCESS_TOKEN={{accessToken}}; XSRF-TOKEN={{xsrfToken}}
+X-XSRF-TOKEN: {{xsrfToken}}
+
+### Current user after logout should be 401
+GET {{baseUrl}}/api/auth/me

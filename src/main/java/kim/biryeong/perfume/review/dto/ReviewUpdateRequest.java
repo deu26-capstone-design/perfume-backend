@@ -7,9 +7,9 @@ import jakarta.validation.constraints.Size;
 import java.util.List;
 import lombok.Getter;
 
-/** 리뷰 작성 요청 본문. 작성자 식별자는 JWT subject의 현재 인증 사용자 ID를 사용한다. */
+/** 리뷰 수정 요청 본문. 작성자 식별자는 JWT subject의 현재 인증 사용자 ID를 사용한다. */
 @Getter
-public class ReviewRequest {
+public class ReviewUpdateRequest {
 
   /** 향수 만족도 점수. 1~5 범위의 필수 값이다. */
   @NotNull
@@ -34,6 +34,6 @@ public class ReviewRequest {
   @Size(max = 1000)
   private String comment;
 
-  /** 면책 조항 동의 여부. 리뷰 작성 시 true여야 한다. */
+  /** 면책 조항 동의 여부. 리뷰 수정 시 true여야 한다. */
   @NotNull private Boolean disclaimerAgreed;
 }
