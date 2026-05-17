@@ -7,6 +7,9 @@
 - Base path: `/api`
 - Request/response content type: `application/json`
 - 페이지 번호는 `0`부터 시작합니다.
+- 모든 Accord Detail API는 공개 `GET` 조회 API입니다. JWT 인증과 CSRF 토큰 없이 호출할 수 있습니다.
+- 프론트엔드와 API가 다른 도메인에 배포되어 있고 공통 fetch 설정으로 쿠키를 포함한다면, 프론트엔드 origin이 서버 CORS
+  허용 목록에 포함되어야 합니다.
 - 검증 또는 비즈니스 오류 응답은 기본적으로 다음 JSON 형태를 사용합니다.
 
 ```json

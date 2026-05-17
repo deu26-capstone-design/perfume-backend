@@ -16,6 +16,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
+import kim.biryeong.perfume.accord.domain.Accord;
+import kim.biryeong.perfume.accord.repository.AccordNoteRepository;
+import kim.biryeong.perfume.accord.repository.AccordRepository;
 import kim.biryeong.perfume.audit.AuditEventType;
 import kim.biryeong.perfume.audit.AuditLog;
 import kim.biryeong.perfume.audit.AuditLogRepository;
@@ -57,6 +60,10 @@ class AuthControllerSecurityTest {
 
   @Autowired private PerfumeRepository perfumeRepository;
 
+  @Autowired private AccordRepository accordRepository;
+
+  @Autowired private AccordNoteRepository accordNoteRepository;
+
   @Autowired private ReviewRepository reviewRepository;
 
   @Autowired private ReviewSeasonRepository reviewSeasonRepository;
@@ -79,6 +86,8 @@ class AuthControllerSecurityTest {
     reviewSeasonRepository.deleteAll();
     reviewRepository.deleteAll();
     perfumeRepository.deleteAll();
+    accordNoteRepository.deleteAll();
+    accordRepository.deleteAll();
     userRepository.deleteAll();
     user = userRepository.save(completedUser());
   }
@@ -322,6 +331,27 @@ class AuthControllerSecurityTest {
     mockMvc
         .perform(get("/api/wishlist").cookie(invalidSubjectAuthCookie()))
         .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void accordDetailAllowsAnonymousAccess() throws Exception {
+    accordRepository.save(
+        new Accord(1L, "Citrus", "Citrus description", "https://example.com/citrus.jpg"));
+
+    mockMvc
+        .perform(get("/api/accords/detail"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$[0].name").value("Citrus"));
+  }
+
+  @Test
+  void accordDetailNotesReachControllerWithoutAuthentication() throws Exception {
+    mockMvc.perform(get("/api/accords/detail/999999/notes")).andExpect(status().isNotFound());
+  }
+
+  @Test
+  void accordDetailPerfumesReachControllerWithoutAuthentication() throws Exception {
+    mockMvc.perform(get("/api/accords/detail/999999/perfumes")).andExpect(status().isNotFound());
   }
 
   @Test
