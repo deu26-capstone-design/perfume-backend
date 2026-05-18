@@ -9,6 +9,7 @@ import kim.biryeong.perfume.perfume.dto.AccordDto;
 import kim.biryeong.perfume.perfume.dto.NoteGroupDto;
 import kim.biryeong.perfume.perfume.dto.PerfumeCardProjection;
 import kim.biryeong.perfume.perfume.dto.PerfumeDetailResponse;
+import kim.biryeong.perfume.perfume.dto.PerfumeListResponse;
 import kim.biryeong.perfume.perfume.dto.StatsDto;
 import kim.biryeong.perfume.perfume.repository.PerfumeNoteRepository;
 import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
@@ -57,6 +58,13 @@ public class PerfumeService {
       return perfumeRepository.findAllByFiltersOrderByRatingDesc(
           keyword, gender, accordFilter, accordCount, pageable);
     }
+  }
+
+  @Transactional(readOnly = true)
+  public PerfumeListResponse getAccordPerfumes(String accordName, int page, int size) {
+    PageRequest pageable = PageRequest.of(page, size);
+    return new PerfumeListResponse(
+        perfumeRepository.findAllByAccordNameOrderByRatioDesc(accordName, pageable));
   }
 
   @Transactional(readOnly = true)
