@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import kim.biryeong.perfume.perfume.domain.Perfume;
 import kim.biryeong.perfume.perfume.dto.StatsDto;
@@ -14,6 +15,7 @@ import kim.biryeong.perfume.review.domain.ReviewSeason;
 import kim.biryeong.perfume.review.domain.ScentName;
 import kim.biryeong.perfume.review.domain.Season;
 import kim.biryeong.perfume.review.dto.ReviewCreateResponse;
+import kim.biryeong.perfume.review.dto.ReviewDetailResponse;
 import kim.biryeong.perfume.review.dto.ReviewItemDto;
 import kim.biryeong.perfume.review.dto.ReviewListResponse;
 import kim.biryeong.perfume.review.dto.ReviewRequest;
@@ -164,6 +166,43 @@ public class ReviewService {
 
     Page<ReviewItemDto> dtoPage = new PageImpl<>(dtos, pageable, reviewPage.getTotalElements());
     return new ReviewListResponse(dtoPage);
+  }
+
+  @Transactional(readOnly = true)
+  public Optional<ReviewDetailResponse> getCurrentUserReview(Long perfumeId, Integer userId) {
+    if (!perfumeRepository.existsById(perfumeId)) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 향수 ID입니다.");
+    }
+    if (!userRepository.existsById(userId)) {
+      throw new ResponseStatusException(HttpStatus.NOT_FOUND, "존재하지 않는 유저 ID입니다.");
+    }
+
+    Optional<Review> review = reviewRepository.findByPerfumeIdAndUserId(perfumeId, userId);
+    if (review.isEmpty()) {
+      return Optional.empty();
+    }
+
+    Review currentReview = review.get();
+    Long reviewId = currentReview.getId();
+    List<String> seasons =
+        reviewSeasonRepository.findByReviewIds(List.of(reviewId)).stream()
+            .map(reviewSeason -> reviewSeason.getSeason().getValue())
+            .toList();
+    List<String> scents =
+        reviewScentRepository.findByReviewIds(List.of(reviewId)).stream()
+            .map(reviewScent -> reviewScent.getScentName().getValue())
+            .toList();
+
+    return Optional.of(
+        new ReviewDetailResponse(
+            reviewId,
+            currentReview.getSatisfaction(),
+            currentReview.getLongevity(),
+            seasons,
+            scents,
+            currentReview.getComment(),
+            currentReview.getDisclaimerAgreed(),
+            currentReview.getCreatedAt().toLocalDate()));
   }
 
   @Transactional

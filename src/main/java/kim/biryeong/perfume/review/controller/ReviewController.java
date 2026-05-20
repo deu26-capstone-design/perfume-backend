@@ -5,12 +5,14 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import kim.biryeong.perfume.auth.AuthenticatedUserIds;
 import kim.biryeong.perfume.review.dto.ReviewCreateResponse;
+import kim.biryeong.perfume.review.dto.ReviewDetailResponse;
 import kim.biryeong.perfume.review.dto.ReviewListResponse;
 import kim.biryeong.perfume.review.dto.ReviewRequest;
 import kim.biryeong.perfume.review.dto.ReviewUpdateRequest;
 import kim.biryeong.perfume.review.service.ReviewService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +40,24 @@ public class ReviewController {
       @RequestParam(defaultValue = "0") @Min(0) int page,
       @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size) {
     return reviewService.getReviews(id, page, size);
+  }
+
+  /**
+   * 로그인 사용자가 특정 향수에 작성한 리뷰를 조회한다.
+   *
+   * <p>리뷰가 없으면 응답 본문 없이 HTTP 204를 반환한다.
+   *
+   * @param id 리뷰 작성 여부를 확인할 향수 ID. 1 이상이어야 한다.
+   * @param authentication JWT subject를 포함한 Spring Security 인증 객체
+   * @return 현재 사용자의 리뷰 데이터 또는 204 응답
+   */
+  @GetMapping("/{id}/reviews/me")
+  public ResponseEntity<ReviewDetailResponse> getCurrentUserReview(
+      @PathVariable @Min(1) Long id, Authentication authentication) {
+    return reviewService
+        .getCurrentUserReview(id, AuthenticatedUserIds.currentUserId(authentication))
+        .map(ResponseEntity::ok)
+        .orElseGet(() -> ResponseEntity.noContent().build());
   }
 
   /**
