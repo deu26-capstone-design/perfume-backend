@@ -19,8 +19,11 @@ import kim.biryeong.perfume.review.domain.ReviewScent;
 import kim.biryeong.perfume.review.domain.ReviewSeason;
 import kim.biryeong.perfume.review.domain.ScentName;
 import kim.biryeong.perfume.review.domain.Season;
+import kim.biryeong.perfume.review.dto.MyReviewItemDto;
+import kim.biryeong.perfume.review.dto.MyReviewListResponse;
 import kim.biryeong.perfume.review.dto.ReviewDetailResponse;
 import kim.biryeong.perfume.review.dto.ReviewRequest;
+import kim.biryeong.perfume.review.dto.ReviewUpdateRequest;
 import kim.biryeong.perfume.review.repository.ReviewRepository;
 import kim.biryeong.perfume.review.repository.ReviewScentRepository;
 import kim.biryeong.perfume.review.repository.ReviewSeasonRepository;
@@ -28,6 +31,8 @@ import kim.biryeong.perfume.user.domain.User;
 import kim.biryeong.perfume.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.server.ResponseStatusException;
@@ -177,6 +182,98 @@ class ReviewServiceTest {
     verify(reviewScentRepository, never()).findByReviewIds(org.mockito.ArgumentMatchers.any());
   }
 
+  @Test
+  void updateReviewRejectsDisclaimerNotAgreed() {
+    ReviewUpdateRequest request = updateRequest(false);
+
+    ResponseStatusException exception =
+        assertThrows(
+            ResponseStatusException.class, () -> reviewService.updateReview(1L, 7, request));
+
+    assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+  }
+
+  @Test
+  void updateReviewRejectsMissingReview() {
+    when(reviewRepository.findById(1L)).thenReturn(Optional.empty());
+
+    ResponseStatusException exception =
+        assertThrows(
+            ResponseStatusException.class,
+            () -> reviewService.updateReview(1L, 7, updateRequest(true)));
+
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+  }
+
+  @Test
+  void updateReviewRejectsWrongUser() {
+    User owner = new User();
+    ReflectionTestUtils.setField(owner, "userId", 99);
+    Review review = new Review(1L, new Perfume(), owner, 5, null, null, true, null);
+    when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+
+    ResponseStatusException exception =
+        assertThrows(
+            ResponseStatusException.class,
+            () -> reviewService.updateReview(1L, 7, updateRequest(true)));
+
+    assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+  }
+
+  @Test
+  void deleteReviewRejectsMissingReview() {
+    when(reviewRepository.findById(1L)).thenReturn(Optional.empty());
+
+    ResponseStatusException exception =
+        assertThrows(ResponseStatusException.class, () -> reviewService.deleteReview(1L, 7));
+
+    assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+  }
+
+  @Test
+  void deleteReviewRejectsWrongUser() {
+    User owner = new User();
+    ReflectionTestUtils.setField(owner, "userId", 99);
+    Review review = new Review(1L, new Perfume(), owner, 5, null, null, true, null);
+    when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+
+    ResponseStatusException exception =
+        assertThrows(ResponseStatusException.class, () -> reviewService.deleteReview(1L, 7));
+
+    assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+  }
+
+  @Test
+  void getMyReviewsMapsSeasonAndScentCorrectly() {
+    User owner = new User();
+    ReflectionTestUtils.setField(owner, "userId", 7);
+
+    Perfume perfume = new Perfume();
+    ReflectionTestUtils.setField(perfume, "id", 10L);
+    ReflectionTestUtils.setField(perfume, "name", "Test Perfume");
+    ReflectionTestUtils.setField(perfume, "brand", "Test Brand");
+    ReflectionTestUtils.setField(perfume, "imageUrl", "https://example.com/test.jpg");
+
+    Review review = new Review(1L, perfume, owner, 5, 2, "좋아요.", true, LocalDateTime.now());
+
+    ReviewSeason reviewSeason = new ReviewSeason(review, Season.SPRING);
+    ReviewScent reviewScent = new ReviewScent(1L, review, ScentName.FLORAL);
+
+    when(reviewRepository.findByUserIdOrderByCreatedAtDescIdDesc(
+            org.mockito.ArgumentMatchers.eq(7), org.mockito.ArgumentMatchers.any()))
+        .thenReturn(new PageImpl<>(List.of(review), PageRequest.of(0, 30), 1));
+    when(reviewSeasonRepository.findByReviewIds(List.of(1L))).thenReturn(List.of(reviewSeason));
+    when(reviewScentRepository.findByReviewIds(List.of(1L))).thenReturn(List.of(reviewScent));
+
+    MyReviewListResponse response = reviewService.getMyReviews(7, 0, 30);
+    MyReviewItemDto dto = response.getContent().get(0);
+
+    assertEquals("봄", dto.getSeasons().get(0));
+    assertEquals("꽃 향", dto.getScents().get(0));
+    assertEquals("Test Perfume", dto.getPerfumeName());
+    assertEquals(10L, dto.getPerfumeId());
+  }
+
   private static ReviewRequest request(List<String> seasons, List<String> scents) {
     ReviewRequest request = new ReviewRequest();
     ReflectionTestUtils.setField(request, "satisfaction", 5);
@@ -185,6 +282,17 @@ class ReviewServiceTest {
     ReflectionTestUtils.setField(request, "scents", scents);
     ReflectionTestUtils.setField(request, "comment", "좋아요.");
     ReflectionTestUtils.setField(request, "disclaimerAgreed", true);
+    return request;
+  }
+
+  private static ReviewUpdateRequest updateRequest(boolean disclaimerAgreed) {
+    ReviewUpdateRequest request = new ReviewUpdateRequest();
+    ReflectionTestUtils.setField(request, "satisfaction", 4);
+    ReflectionTestUtils.setField(request, "longevity", 2);
+    ReflectionTestUtils.setField(request, "seasons", List.of("봄"));
+    ReflectionTestUtils.setField(request, "scents", List.of("꽃 향"));
+    ReflectionTestUtils.setField(request, "comment", "수정했어요.");
+    ReflectionTestUtils.setField(request, "disclaimerAgreed", disclaimerAgreed);
     return request;
   }
 }

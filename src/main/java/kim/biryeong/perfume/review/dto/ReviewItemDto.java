@@ -9,6 +9,9 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public class ReviewItemDto {
+  /** 리뷰 ID */
+  private Long id;
+
   /** 리뷰 작성자의 닉네임 */
   private String nickname;
 

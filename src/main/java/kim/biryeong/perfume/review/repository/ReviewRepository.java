@@ -35,4 +35,12 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
       countQuery = "SELECT COUNT(r) FROM Review r WHERE r.perfume.id = :perfumeId")
   Page<Review> findByPerfumeIdOrderByCreatedAtDescIdDesc(
       @Param("perfumeId") Long perfumeId, Pageable pageable);
+
+  @Query(
+      value =
+          "SELECT r FROM Review r JOIN FETCH r.perfume WHERE r.user.userId = :userId"
+              + " ORDER BY r.createdAt DESC, r.id DESC",
+      countQuery = "SELECT COUNT(r) FROM Review r WHERE r.user.userId = :userId")
+  Page<Review> findByUserIdOrderByCreatedAtDescIdDesc(
+      @Param("userId") Integer userId, Pageable pageable);
 }

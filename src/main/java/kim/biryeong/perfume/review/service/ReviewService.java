@@ -14,6 +14,8 @@ import kim.biryeong.perfume.review.domain.ReviewScent;
 import kim.biryeong.perfume.review.domain.ReviewSeason;
 import kim.biryeong.perfume.review.domain.ScentName;
 import kim.biryeong.perfume.review.domain.Season;
+import kim.biryeong.perfume.review.dto.MyReviewItemDto;
+import kim.biryeong.perfume.review.dto.MyReviewListResponse;
 import kim.biryeong.perfume.review.dto.ReviewCreateResponse;
 import kim.biryeong.perfume.review.dto.ReviewDetailResponse;
 import kim.biryeong.perfume.review.dto.ReviewItemDto;
@@ -154,6 +156,7 @@ public class ReviewService {
             .map(
                 review ->
                     new ReviewItemDto(
+                        review.getId(),
                         review.getUser().getNickname(),
                         review.getUser().getProfileImageUrl(),
                         review.getSatisfaction(),
@@ -203,6 +206,56 @@ public class ReviewService {
             currentReview.getComment(),
             currentReview.getDisclaimerAgreed(),
             currentReview.getCreatedAt().toLocalDate()));
+  }
+
+  @Transactional(readOnly = true)
+  public MyReviewListResponse getMyReviews(Integer userId, int page, int size) {
+    PageRequest pageable = PageRequest.of(page, size);
+    Page<Review> reviewPage =
+        reviewRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);
+
+    List<Long> reviewIds =
+        reviewPage.getContent().stream().map(Review::getId).collect(Collectors.toList());
+
+    Map<Long, List<String>> scentsByReview =
+        reviewIds.isEmpty()
+            ? Map.of()
+            : reviewScentRepository.findByReviewIds(reviewIds).stream()
+                .collect(
+                    Collectors.groupingBy(
+                        reviewScent -> reviewScent.getReview().getId(),
+                        Collectors.mapping(
+                            reviewScent -> reviewScent.getScentName().getValue(),
+                            Collectors.toList())));
+
+    Map<Long, List<String>> seasonsByReview =
+        reviewIds.isEmpty()
+            ? Map.of()
+            : reviewSeasonRepository.findByReviewIds(reviewIds).stream()
+                .collect(
+                    Collectors.groupingBy(
+                        reviewSeason -> reviewSeason.getReview().getId(),
+                        Collectors.mapping(
+                            reviewSeason -> reviewSeason.getSeason().getValue(),
+                            Collectors.toList())));
+
+    Page<MyReviewItemDto> dtoPage =
+        reviewPage.map(
+            review ->
+                new MyReviewItemDto(
+                    review.getId(),
+                    review.getPerfume().getId(),
+                    review.getPerfume().getImageUrl(),
+                    review.getPerfume().getName(),
+                    review.getPerfume().getBrand(),
+                    review.getSatisfaction(),
+                    review.getLongevity(),
+                    seasonsByReview.getOrDefault(review.getId(), List.of()),
+                    scentsByReview.getOrDefault(review.getId(), List.of()),
+                    review.getCreatedAt().toLocalDate(),
+                    review.getComment()));
+
+    return new MyReviewListResponse(dtoPage);
   }
 
   @Transactional
