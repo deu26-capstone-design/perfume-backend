@@ -27,6 +27,11 @@ import kim.biryeong.perfume.auth.jwt.JwtService;
 import kim.biryeong.perfume.perfume.domain.Gender;
 import kim.biryeong.perfume.perfume.domain.Perfume;
 import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
+import kim.biryeong.perfume.review.domain.Review;
+import kim.biryeong.perfume.review.domain.ReviewScent;
+import kim.biryeong.perfume.review.domain.ReviewSeason;
+import kim.biryeong.perfume.review.domain.ScentName;
+import kim.biryeong.perfume.review.domain.Season;
 import kim.biryeong.perfume.review.repository.ReviewRepository;
 import kim.biryeong.perfume.review.repository.ReviewScentRepository;
 import kim.biryeong.perfume.review.repository.ReviewSeasonRepository;
@@ -518,6 +523,43 @@ class AuthControllerSecurityTest {
                     }
                     """))
         .andExpect(status().isNotFound());
+  }
+
+  @Test
+  void currentUserReviewRejectsMissingAuthentication() throws Exception {
+    mockMvc.perform(get("/api/perfumes/103/reviews/me")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void currentUserReviewReturnsNoContentWhenMissing() throws Exception {
+    perfumeRepository.save(perfume(103L));
+
+    mockMvc
+        .perform(get("/api/perfumes/103/reviews/me").cookie(authCookie()))
+        .andExpect(status().isNoContent());
+
+    assertThat(auditLogRepository.count()).isZero();
+  }
+
+  @Test
+  void currentUserReviewReturnsReviewData() throws Exception {
+    Perfume perfume = perfumeRepository.save(perfume(104L));
+    Review review =
+        reviewRepository.save(new Review(null, perfume, user, 4, 2, "데일리로 좋아요.", true, null));
+    reviewSeasonRepository.save(new ReviewSeason(review, Season.SPRING));
+    reviewScentRepository.save(new ReviewScent(null, review, ScentName.FLORAL));
+
+    mockMvc
+        .perform(get("/api/perfumes/104/reviews/me").cookie(authCookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.id").value(review.getId()))
+        .andExpect(jsonPath("$.satisfaction").value(4))
+        .andExpect(jsonPath("$.longevity").value(2))
+        .andExpect(jsonPath("$.seasons[0]").value("봄"))
+        .andExpect(jsonPath("$.scents[0]").value("꽃 향"))
+        .andExpect(jsonPath("$.comment").value("데일리로 좋아요."))
+        .andExpect(jsonPath("$.disclaimerAgreed").value(true))
+        .andExpect(jsonPath("$.createdAt").isString());
   }
 
   @Test

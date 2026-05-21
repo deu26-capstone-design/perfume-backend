@@ -28,7 +28,7 @@
 ## 인증
 
 - 공개 조회 API는 인증 없이 호출할 수 있습니다.
-- `/api/auth/me`, `/api/auth/me/profile`, 리뷰 작성, 위시리스트 API는 JWT 인증이 필요합니다.
+- `/api/auth/me`, `/api/auth/me/profile`, 로그인 사용자 리뷰 조회, 리뷰 작성, 위시리스트 API는 JWT 인증이 필요합니다.
 - `/api/auth/logout`은 만료되었거나 손상된 HttpOnly 인증 쿠키도 브라우저에서 제거할 수 있도록 인증 실패 시에도 쿠키 만료 응답을 반환합니다. 유효한 JWT 쿠키 기반 요청은 다른 상태 변경 API와 같이 CSRF 토큰이 필요합니다.
 - JWT는 `Authorization: Bearer {token}` 헤더 또는 `PERFUME_ACCESS_TOKEN` HttpOnly 쿠키로 전달합니다.
 - 회원가입, 로그인, OAuth 로그인 성공 응답은 `PERFUME_ACCESS_TOKEN`과 함께 브라우저에서 읽을 수 있는 `XSRF-TOKEN` 쿠키를 발급합니다.
@@ -607,6 +607,59 @@ GET /api/perfumes/{id}/reviews
 | --- | --- |
 | `400 Bad Request` | `id`, `page`, `size` 검증 실패 |
 | `404 Not Found` | 향수 ID가 존재하지 않음 |
+
+### 로그인 사용자 리뷰 조회
+
+```http
+GET /api/perfumes/{id}/reviews/me
+```
+
+현재 JWT 인증 사용자가 특정 향수에 작성한 리뷰를 조회합니다. 리뷰가 없으면 응답 본문 없이 `204 No Content`를 반환합니다.
+
+#### Path parameters
+
+| 이름 | 타입 | 검증 | 설명 |
+| --- | --- | --- | --- |
+| `id` | number | `1` 이상 | 리뷰 작성 여부를 확인할 향수 ID |
+
+#### Response `200 OK`
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `id` | number | 리뷰 ID |
+| `satisfaction` | number | 만족도 점수. `1`~`5` |
+| `longevity` | number/null | 지속력 점수. `1`~`3` |
+| `seasons` | array[string] | 선택한 계절 목록 |
+| `scents` | array[string] | 선택한 향 느낌 목록 |
+| `comment` | string/null | 리뷰 본문 |
+| `disclaimerAgreed` | boolean | 면책 조항 동의 여부 |
+| `createdAt` | string | 리뷰 작성일. `yyyy-MM-dd` |
+
+```json
+{
+  "id": 55,
+  "satisfaction": 4,
+  "longevity": 2,
+  "seasons": ["봄"],
+  "scents": ["꽃 향"],
+  "comment": "데일리로 좋아요.",
+  "disclaimerAgreed": true,
+  "createdAt": "2026-05-20"
+}
+```
+
+#### Response `204 No Content`
+
+현재 사용자가 해당 향수에 작성한 리뷰가 없으면 응답 본문은 없습니다.
+
+#### Error cases
+
+| HTTP status | 조건 | 대표 메시지 |
+| --- | --- | --- |
+| `400 Bad Request` | `id` 검증 실패 | 검증 메시지 |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `404 Not Found` | 향수 ID가 존재하지 않음 | `존재하지 않는 향수 ID입니다.` |
+| `404 Not Found` | JWT subject의 사용자 ID가 존재하지 않음 | `존재하지 않는 유저 ID입니다.` |
 
 ### 리뷰 작성
 
