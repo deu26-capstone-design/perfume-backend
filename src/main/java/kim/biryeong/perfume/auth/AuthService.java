@@ -3,6 +3,7 @@ package kim.biryeong.perfume.auth;
 import kim.biryeong.perfume.auth.dto.CompleteProfileRequest;
 import kim.biryeong.perfume.auth.dto.LoginRequest;
 import kim.biryeong.perfume.auth.dto.SignupRequest;
+import kim.biryeong.perfume.auth.dto.UpdateProfileRequest;
 import kim.biryeong.perfume.user.domain.User;
 import kim.biryeong.perfume.user.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -28,7 +29,6 @@ public class AuthService {
     if (userRepository.existsByNickname(request.nickname())) {
       throw new AuthConflictException("nickname already exists");
     }
-
     User user = new User();
     user.setEmail(request.email());
     user.setPassword(passwordEncoder.encode(request.password()));
@@ -64,13 +64,23 @@ public class AuthService {
     if (userRepository.existsByNicknameAndUserIdNot(request.nickname(), userId)) {
       throw new AuthConflictException("nickname already exists");
     }
-
     user.setName(request.name());
     user.setNickname(request.nickname());
     user.setGender(request.gender());
     user.setBirthDate(request.birthDate());
     user.setPhoneNumber(request.phoneNumber());
     user.setProfileCompleted(true);
+    return user;
+  }
+
+  @Transactional
+  public User updateProfile(Integer userId, UpdateProfileRequest request) {
+    User user = getCurrentUser(userId);
+    if (userRepository.existsByNicknameAndUserIdNot(request.nickname(), userId)) {
+      throw new AuthConflictException("nickname already exists");
+    }
+    user.setNickname(request.nickname());
+    user.setPhoneNumber(request.phoneNumber());
     return user;
   }
 

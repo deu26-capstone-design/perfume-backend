@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.LocalDate;
 import kim.biryeong.perfume.auth.dto.LoginRequest;
 import kim.biryeong.perfume.auth.dto.SignupRequest;
+import kim.biryeong.perfume.auth.dto.UpdateProfileRequest;
 import kim.biryeong.perfume.user.domain.User;
 import kim.biryeong.perfume.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class LocalAuthServiceTest {
     assertThat(user.getNickname()).isEqualTo("newnick");
     assertThat(user.getGender()).isEqualTo("F");
     assertThat(user.getBirthDate()).isEqualTo(LocalDate.of(1999, 5, 1));
-    assertThat(user.getPhoneNumber()).isEqualTo("01012345678");
+    assertThat(user.getPhoneNumber()).isEqualTo("010-1234-5678");
     assertThat(user.isProfileCompleted()).isTrue();
     assertThat(user.getOauthProvider()).isNull();
     assertThat(user.getOauthProviderId()).isNull();
@@ -58,6 +59,31 @@ class LocalAuthServiceTest {
     authService.signup(signupRequest("first@example.com", "duplicate"));
 
     assertThatThrownBy(() -> authService.signup(signupRequest("second@example.com", "duplicate")))
+        .isInstanceOf(AuthConflictException.class)
+        .hasMessage("nickname already exists");
+  }
+
+  @Test
+  void updateProfileAllowsSameNickname() {
+    User user = authService.signup(signupRequest("same@example.com", "samenick"));
+
+    User updated =
+        authService.updateProfile(
+            user.getUserId(), new UpdateProfileRequest("samenick", "010-9999-8888"));
+
+    assertThat(updated.getNickname()).isEqualTo("samenick");
+    assertThat(updated.getPhoneNumber()).isEqualTo("010-9999-8888");
+  }
+
+  @Test
+  void updateProfileRejectsDuplicateNickname() {
+    authService.signup(signupRequest("user1@example.com", "nick1"));
+    User user2 = authService.signup(signupRequest("user2@example.com", "nick2"));
+
+    assertThatThrownBy(
+            () ->
+                authService.updateProfile(
+                    user2.getUserId(), new UpdateProfileRequest("nick1", "010-1234-5678")))
         .isInstanceOf(AuthConflictException.class)
         .hasMessage("nickname already exists");
   }
@@ -103,7 +129,7 @@ class LocalAuthServiceTest {
         nickname,
         "F",
         LocalDate.of(1999, 5, 1),
-        "01012345678");
+        "010-1234-5678");
   }
 
   static class PasswordEncoderConfig {

@@ -112,7 +112,7 @@ class AuthControllerSecurityTest {
 										"nickname": "signup",
 										"gender": "F",
 										"birthDate": "1999-05-01",
-										"phoneNumber": "01012345678"
+										"phoneNumber": "010-1234-5678"
 										}
 										"""))
         .andExpect(status().isOk())
@@ -145,7 +145,7 @@ class AuthControllerSecurityTest {
 										"nickname": "new_signup",
 										"gender": "F",
 										"birthDate": "1999-05-01",
-										"phoneNumber": "01012345678"
+										"phoneNumber": "010-1234-5678"
 										}
 										"""))
         .andExpect(status().isConflict())
@@ -165,6 +165,27 @@ class AuthControllerSecurityTest {
 										"password": "short",
 										"name": "Invalid User",
 										"nickname": "invalid",
+										"gender": "F",
+										"birthDate": "1999-05-01",
+										"phoneNumber": "010-1234-5678"
+										}
+										"""))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void signupRejectsInvalidPhoneFormat() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+										{
+										"email": "phone-test@example.com",
+										"password": "secret-password",
+										"name": "Phone Test",
+										"nickname": "phonetest",
 										"gender": "F",
 										"birthDate": "1999-05-01",
 										"phoneNumber": "01012345678"
@@ -585,10 +606,10 @@ class AuthControllerSecurityTest {
                     """
 										{
 										"name": "No Csrf",
-										"nickname": "no_csrf",
+										"nickname": "nocsrf",
 										"gender": "M",
 										"birthDate": "2000-01-01",
-										"phoneNumber": "01012345678"
+										"phoneNumber": "010-1234-5678"
 										}
 										"""))
         .andExpect(status().isForbidden());
@@ -610,10 +631,10 @@ class AuthControllerSecurityTest {
                     """
                     {
                     "name": "No Auth",
-                    "nickname": "no_auth",
+                    "nickname": "noauth",
                     "gender": "M",
                     "birthDate": "2000-01-01",
-                    "phoneNumber": "01012345678"
+                    "phoneNumber": "010-1234-5678"
                     }
                     """))
         .andExpect(status().isUnauthorized());
@@ -634,7 +655,7 @@ class AuthControllerSecurityTest {
 										"nickname": "updated",
 										"gender": "F",
 										"birthDate": "2000-01-01",
-										"phoneNumber": "01012345678"
+										"phoneNumber": "010-1234-5678"
 										}
 										"""))
         .andExpect(status().isOk())
@@ -642,7 +663,7 @@ class AuthControllerSecurityTest {
         .andExpect(jsonPath("$.nickname").value("updated"))
         .andExpect(jsonPath("$.gender").value("F"))
         .andExpect(jsonPath("$.birthDate").value("2000-01-01"))
-        .andExpect(jsonPath("$.phoneNumber").value("01012345678"))
+        .andExpect(jsonPath("$.phoneNumber").value("010-1234-5678"))
         .andExpect(jsonPath("$.profileCompleted").value(true));
   }
 
@@ -663,10 +684,107 @@ class AuthControllerSecurityTest {
 										"nickname": "taken",
 										"gender": "M",
 										"birthDate": "2000-01-01",
-										"phoneNumber": "01012345678"
+										"phoneNumber": "010-1234-5678"
 										}
 										"""))
         .andExpect(status().isConflict());
+  }
+
+  @Test
+  void profileUpdateRequiresCsrfToken() throws Exception {
+    mockMvc
+        .perform(
+            patch("/api/auth/me")
+                .cookie(authCookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                    "nickname": "nocsrf",
+                    "phoneNumber": "010-1234-5678"
+                    }
+                    """))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void profileUpdateRejectsMissingAuthentication() throws Exception {
+    mockMvc
+        .perform(
+            patch("/api/auth/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                    "nickname": "noauth",
+                    "phoneNumber": "010-1234-5678"
+                    }
+                    """))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void profileUpdateUpdatesCurrentUser() throws Exception {
+    mockMvc
+        .perform(
+            patch("/api/auth/me")
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                    "nickname": "newnick",
+                    "phoneNumber": "010-9999-8888"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.nickname").value("newnick"))
+        .andExpect(jsonPath("$.phoneNumber").value("010-9999-8888"));
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_PROFILE_UPDATE);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+  }
+
+  @Test
+  void profileUpdateRejectsDuplicateNickname() throws Exception {
+    userRepository.saveAndFlush(completedUser("taken2@example.com", "takennick"));
+
+    mockMvc
+        .perform(
+            patch("/api/auth/me")
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                    "nickname": "takennick",
+                    "phoneNumber": "010-1234-5678"
+                    }
+                    """))
+        .andExpect(status().isConflict());
+  }
+
+  @Test
+  void profileUpdateAllowsSameNickname() throws Exception {
+    mockMvc
+        .perform(
+            patch("/api/auth/me")
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                    "nickname": "security",
+                    "phoneNumber": "010-1234-5678"
+                    }
+                    """))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.nickname").value("security"));
   }
 
   @Test
@@ -735,6 +853,70 @@ class AuthControllerSecurityTest {
         .andExpect(header().string(HttpHeaders.SET_COOKIE, containsString("PERFUME_ACCESS_TOKEN=")))
         .andExpect(cookie().maxAge("PERFUME_ACCESS_TOKEN", 0))
         .andExpect(cookie().maxAge("XSRF-TOKEN", 0));
+  }
+
+  @Test
+  void myReviewsRequiresAuthentication() throws Exception {
+    mockMvc.perform(get("/api/auth/me/reviews")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void myReviewsRejectsInvalidSize() throws Exception {
+    mockMvc
+        .perform(get("/api/auth/me/reviews").cookie(authCookie()).param("size", "0"))
+        .andExpect(status().isBadRequest());
+
+    mockMvc
+        .perform(get("/api/auth/me/reviews").cookie(authCookie()).param("size", "101"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void myReviewsRejectsNegativePage() throws Exception {
+    mockMvc
+        .perform(get("/api/auth/me/reviews").cookie(authCookie()).param("page", "-1"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void myReviewsReturnsOkForAuthenticatedUser() throws Exception {
+    mockMvc
+        .perform(get("/api/auth/me/reviews").cookie(authCookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isArray())
+        .andExpect(jsonPath("$.totalElements").value(0));
+  }
+
+  @Test
+  void wishlistPageRequiresAuthentication() throws Exception {
+    mockMvc.perform(get("/api/wishlist/page")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void wishlistPageRejectsInvalidSize() throws Exception {
+    mockMvc
+        .perform(get("/api/wishlist/page").cookie(authCookie()).param("size", "0"))
+        .andExpect(status().isBadRequest());
+
+    mockMvc
+        .perform(get("/api/wishlist/page").cookie(authCookie()).param("size", "101"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void wishlistPageRejectsNegativePage() throws Exception {
+    mockMvc
+        .perform(get("/api/wishlist/page").cookie(authCookie()).param("page", "-1"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void wishlistPageReturnsOkForAuthenticatedUser() throws Exception {
+    mockMvc
+        .perform(get("/api/wishlist/page").cookie(authCookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.content").isArray())
+        .andExpect(jsonPath("$.totalElements").value(0));
   }
 
   private Cookie authCookie() {

@@ -7,6 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import kim.biryeong.perfume.auth.dto.CompleteProfileRequest;
+import kim.biryeong.perfume.auth.dto.UpdateProfileRequest;
 import kim.biryeong.perfume.auth.oauth.OAuthAccountService;
 import kim.biryeong.perfume.domain.OAuthProvider;
 import kim.biryeong.perfume.user.domain.User;
@@ -242,6 +243,33 @@ class GoogleOAuthUserServiceTest {
   private OAuth2User naverUser(Map<String, Object> response) {
     return new DefaultOAuth2User(
         List.of(new SimpleGrantedAuthority("ROLE_USER")), Map.of("response", response), "response");
+  }
+
+  @Test
+  void updateProfileRejectsDuplicateNickname() {
+    userRepository.saveAndFlush(completedUser("existing@example.com", "taken"));
+    User target = userRepository.saveAndFlush(completedUser("target@example.com", "original"));
+
+    UpdateProfileRequest request = new UpdateProfileRequest("taken", "01011112222");
+
+    assertThatThrownBy(() -> authService.updateProfile(target.getUserId(), request))
+        .isInstanceOf(AuthConflictException.class)
+        .hasMessage("nickname already exists");
+  }
+
+  @Test
+  void updateProfileUpdatesNicknameAndPhoneNumber() {
+    User target = userRepository.saveAndFlush(completedUser("update@example.com", "before"));
+
+    UpdateProfileRequest request = new UpdateProfileRequest("after", "01099998888");
+
+    User updated = authService.updateProfile(target.getUserId(), request);
+
+    assertThat(updated.getName()).isEqualTo("Local User");
+    assertThat(updated.getNickname()).isEqualTo("after");
+    assertThat(updated.getPhoneNumber()).isEqualTo("01099998888");
+    assertThat(updated.getGender()).isEqualTo("M");
+    assertThat(updated.getBirthDate()).isEqualTo(LocalDate.of(1990, 1, 1));
   }
 
   private User completedUser(String email, String nickname) {
