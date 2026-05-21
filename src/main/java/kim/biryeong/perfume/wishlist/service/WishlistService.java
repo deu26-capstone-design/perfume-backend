@@ -1,15 +1,18 @@
 package kim.biryeong.perfume.wishlist.service;
 
 import java.util.List;
+import java.util.Set;
 import kim.biryeong.perfume.perfume.domain.Perfume;
 import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
 import kim.biryeong.perfume.user.domain.User;
 import kim.biryeong.perfume.user.repository.UserRepository;
 import kim.biryeong.perfume.wishlist.domain.Wishlist;
 import kim.biryeong.perfume.wishlist.domain.WishlistId;
+import kim.biryeong.perfume.wishlist.dto.WishlistListResponse;
 import kim.biryeong.perfume.wishlist.dto.WishlistResponse;
 import kim.biryeong.perfume.wishlist.repository.WishlistRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +54,21 @@ public class WishlistService {
   public List<WishlistResponse> getWishlist(Integer userId) {
     getUser(userId);
     return wishlistRepository.findByUserId(userId);
+  }
+
+  @Transactional(readOnly = true)
+  public Set<Long> findWishlistedPerfumeIds(Integer userId, List<Long> perfumeIds) {
+    if (userId == null || perfumeIds.isEmpty()) {
+      return Set.of();
+    }
+    return Set.copyOf(wishlistRepository.findWishlistedPerfumeIds(userId, perfumeIds));
+  }
+
+  @Transactional(readOnly = true)
+  public WishlistListResponse getWishlistPage(Integer userId, int page, int size) {
+    getUser(userId);
+    return new WishlistListResponse(
+        wishlistRepository.findPageByUserId(userId, PageRequest.of(page, size)));
   }
 
   private Perfume getPerfume(Long perfumeId) {

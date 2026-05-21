@@ -1,12 +1,13 @@
 package kim.biryeong.perfume.wishlist.domain;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import kim.biryeong.perfume.perfume.domain.Perfume;
 import kim.biryeong.perfume.user.domain.User;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
 @Table(name = "wishlist")
@@ -14,7 +15,6 @@ import lombok.Setter;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class Wishlist {
 
   @Id
@@ -26,4 +26,13 @@ public class Wishlist {
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
+
+  @CreationTimestamp
+  @Column(updatable = false)
+  private LocalDateTime createdAt;
+
+  public Wishlist(Perfume perfume, User user) {
+    this.perfume = perfume;
+    this.user = user;
+  }
 }
