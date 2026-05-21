@@ -6,8 +6,10 @@ import java.util.List;
 import kim.biryeong.perfume.accord.dto.AccordDetailResponse;
 import kim.biryeong.perfume.accord.dto.AccordNotePageResponse;
 import kim.biryeong.perfume.accord.service.AccordService;
+import kim.biryeong.perfume.auth.AuthenticatedUserIds;
 import kim.biryeong.perfume.perfume.dto.PerfumeListResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -72,7 +74,9 @@ public class AccordController {
   public PerfumeListResponse getAccordPerfumes(
       @PathVariable @Min(1) Long id,
       @RequestParam(defaultValue = "0") @Min(0) int page,
-      @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size) {
-    return accordService.getAccordPerfumes(id, page, size);
+      @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size,
+      Authentication authentication) {
+    return accordService.getAccordPerfumes(
+        id, page, size, AuthenticatedUserIds.currentUserIdOrNull(authentication));
   }
 }

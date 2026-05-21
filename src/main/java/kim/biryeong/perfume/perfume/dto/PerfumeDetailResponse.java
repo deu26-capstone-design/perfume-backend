@@ -47,4 +47,7 @@ public class PerfumeDetailResponse {
 
   /** 계절 통계. 키는 봄/여름/가을/겨울, 값은 계절 응답 리뷰 대비 비율이다. */
   private Map<String, Integer> seasons;
+
+  /** 현재 로그인한 사용자의 위시리스트 포함 여부. 비로그인 시 항상 false다. */
+  private boolean isWishlisted;
 }

@@ -1,12 +1,14 @@
 package kim.biryeong.perfume.perfume.service;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import kim.biryeong.perfume.accord.repository.PerfumeAccordRepository;
 import kim.biryeong.perfume.perfume.domain.Perfume;
 import kim.biryeong.perfume.perfume.domain.PerfumeNote;
 import kim.biryeong.perfume.perfume.dto.AccordDto;
 import kim.biryeong.perfume.perfume.dto.NoteGroupDto;
+import kim.biryeong.perfume.perfume.dto.PerfumeCardDto;
 import kim.biryeong.perfume.perfume.dto.PerfumeCardProjection;
 import kim.biryeong.perfume.perfume.dto.PerfumeDetailResponse;
 import kim.biryeong.perfume.perfume.dto.PerfumeListResponse;
@@ -15,6 +17,7 @@ import kim.biryeong.perfume.perfume.repository.PerfumeNoteRepository;
 import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
 import kim.biryeong.perfume.review.repository.ReviewRepository;
 import kim.biryeong.perfume.review.service.ReviewService;
+import kim.biryeong.perfume.wishlist.service.WishlistService;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,44 +34,98 @@ public class PerfumeService {
   private final PerfumeAccordRepository perfumeAccordRepository;
   private final ReviewRepository reviewRepository;
   private final ReviewService reviewService;
+  private final WishlistService wishlistService;
 
   public PerfumeService(
       PerfumeRepository perfumeRepository,
       PerfumeNoteRepository perfumeNoteRepository,
       PerfumeAccordRepository perfumeAccordRepository,
       ReviewRepository reviewRepository,
-      @Lazy ReviewService reviewService) {
+      @Lazy ReviewService reviewService,
+      WishlistService wishlistService) {
     this.perfumeRepository = perfumeRepository;
     this.perfumeNoteRepository = perfumeNoteRepository;
     this.perfumeAccordRepository = perfumeAccordRepository;
     this.reviewRepository = reviewRepository;
     this.reviewService = reviewService;
+    this.wishlistService = wishlistService;
   }
 
   @Transactional(readOnly = true)
-  public Page<PerfumeCardProjection> getPerfumes(
-      String keyword, String gender, List<String> accords, String sort, int page, int size) {
+  public PerfumeListResponse getPerfumes(
+      String keyword,
+      String gender,
+      List<String> accords,
+      String sort,
+      int page,
+      int size,
+      Integer userId) {
     PageRequest pageable = PageRequest.of(page, size);
     List<String> accordFilter = (accords == null || accords.isEmpty()) ? List.of() : accords;
     int accordCount = accordFilter.size();
+
+    Page<PerfumeCardProjection> projectionPage;
     if ("rating_asc".equals(sort)) {
-      return perfumeRepository.findAllByFiltersOrderByRatingAsc(
-          keyword, gender, accordFilter, accordCount, pageable);
+      projectionPage =
+          perfumeRepository.findAllByFiltersOrderByRatingAsc(
+              keyword, gender, accordFilter, accordCount, pageable);
     } else {
-      return perfumeRepository.findAllByFiltersOrderByRatingDesc(
-          keyword, gender, accordFilter, accordCount, pageable);
+      projectionPage =
+          perfumeRepository.findAllByFiltersOrderByRatingDesc(
+              keyword, gender, accordFilter, accordCount, pageable);
     }
-  }
 
-  @Transactional(readOnly = true)
-  public PerfumeListResponse getAccordPerfumes(String accordName, int page, int size) {
-    PageRequest pageable = PageRequest.of(page, size);
+    List<Long> perfumeIds =
+        projectionPage.getContent().stream()
+            .map(PerfumeCardProjection::getId)
+            .collect(Collectors.toList());
+
+    Set<Long> wishlistedIds = wishlistService.findWishlistedPerfumeIds(userId, perfumeIds);
+
+    List<PerfumeCardDto> cards =
+        projectionPage.getContent().stream()
+            .map(p -> new PerfumeCardDto(p, wishlistedIds.contains(p.getId())))
+            .collect(Collectors.toList());
+
     return new PerfumeListResponse(
-        perfumeRepository.findAllByAccordNameOrderByRatioDesc(accordName, pageable));
+        cards,
+        projectionPage.getNumber(),
+        projectionPage.getSize(),
+        projectionPage.hasNext(),
+        projectionPage.getTotalElements(),
+        projectionPage.getTotalPages());
   }
 
   @Transactional(readOnly = true)
-  public PerfumeDetailResponse getPerfumeDetail(Long id) {
+  public PerfumeListResponse getAccordPerfumes(
+      String accordName, int page, int size, Integer userId) {
+    PageRequest pageable = PageRequest.of(page, size);
+    Page<PerfumeCardProjection> projectionPage =
+        perfumeRepository.findAllByAccordNameOrderByRatioDesc(accordName, pageable);
+
+    List<Long> perfumeIds =
+        projectionPage.getContent().stream()
+            .map(PerfumeCardProjection::getId)
+            .collect(Collectors.toList());
+
+    Set<Long> wishlistedIds = wishlistService.findWishlistedPerfumeIds(userId, perfumeIds);
+
+    List<PerfumeCardDto> cards =
+        projectionPage.getContent().stream()
+            .map(p -> new PerfumeCardDto(p, wishlistedIds.contains(p.getId())))
+            .collect(Collectors.toList());
+
+    return new PerfumeListResponse(
+        cards,
+        projectionPage.getNumber(),
+        projectionPage.getSize(),
+        projectionPage.hasNext(),
+        projectionPage.getTotalElements(),
+        projectionPage.getTotalPages());
+  }
+
+  @Transactional(readOnly = true)
+  public PerfumeDetailResponse getPerfumeDetail(Long id, Integer userId) {
     Perfume perfume =
         perfumeRepository
             .findById(id)
@@ -98,6 +155,9 @@ public class PerfumeService {
 
     StatsDto stats = reviewService.getReviewSummary(id);
 
+    boolean isWishlisted =
+        !wishlistService.findWishlistedPerfumeIds(userId, List.of(perfume.getId())).isEmpty();
+
     return new PerfumeDetailResponse(
         perfume.getId(),
         perfume.getImageUrl(),
@@ -111,6 +171,7 @@ public class PerfumeService {
         accords,
         stats.getSatisfaction(),
         stats.getLongevity(),
-        stats.getSeasons());
+        stats.getSeasons(),
+        isWishlisted);
   }
 }

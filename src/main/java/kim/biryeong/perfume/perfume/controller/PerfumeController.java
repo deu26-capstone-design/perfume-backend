@@ -4,10 +4,12 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Pattern;
 import java.util.List;
+import kim.biryeong.perfume.auth.AuthenticatedUserIds;
 import kim.biryeong.perfume.perfume.dto.PerfumeDetailResponse;
 import kim.biryeong.perfume.perfume.dto.PerfumeListResponse;
 import kim.biryeong.perfume.perfume.service.PerfumeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,9 +46,16 @@ public class PerfumeController {
               message = "sort는 rating_asc, rating_desc 중 하나여야 합니다.")
           String sort,
       @RequestParam(defaultValue = "0") @Min(0) int page,
-      @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size) {
-    return new PerfumeListResponse(
-        perfumeService.getPerfumes(keyword, gender, accords, sort, page, size));
+      @RequestParam(defaultValue = "30") @Min(1) @Max(100) int size,
+      Authentication authentication) {
+    return perfumeService.getPerfumes(
+        keyword,
+        gender,
+        accords,
+        sort,
+        page,
+        size,
+        AuthenticatedUserIds.currentUserIdOrNull(authentication));
   }
 
   /**
@@ -56,7 +65,9 @@ public class PerfumeController {
    * @return 향수 기본 정보, 노트, 어코드, 리뷰 통계를 포함한 상세 응답
    */
   @GetMapping("/{id}")
-  public PerfumeDetailResponse getPerfumeDetail(@PathVariable @Min(1) Long id) {
-    return perfumeService.getPerfumeDetail(id);
+  public PerfumeDetailResponse getPerfumeDetail(
+      @PathVariable @Min(1) Long id, Authentication authentication) {
+    return perfumeService.getPerfumeDetail(
+        id, AuthenticatedUserIds.currentUserIdOrNull(authentication));
   }
 }

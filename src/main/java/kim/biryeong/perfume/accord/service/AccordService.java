@@ -56,9 +56,9 @@ public class AccordService {
   }
 
   @Transactional(readOnly = true)
-  public PerfumeListResponse getAccordPerfumes(Long id, int page, int size) {
+  public PerfumeListResponse getAccordPerfumes(Long id, int page, int size, Integer userId) {
     Accord accord = findAccordById(id);
-    return perfumeService.getAccordPerfumes(accord.getName(), page, size);
+    return perfumeService.getAccordPerfumes(accord.getName(), page, size, userId);
   }
 
   private Accord findAccordById(Long id) {
