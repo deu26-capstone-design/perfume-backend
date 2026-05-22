@@ -16,12 +16,28 @@ public interface WishlistRepository extends JpaRepository<Wishlist, WishlistId> 
       "SELECT w.perfume.id AS perfumeId, w.perfume.imageUrl AS imageUrl, w.perfume.brand AS brand, w.perfume.name AS name FROM Wishlist w WHERE w.user.userId = :userId ORDER BY w.createdAt DESC")
   List<WishlistResponse> findByUserId(@Param("userId") Integer userId);
 
+  /**
+   * 사용자의 위시리스트 향수 목록을 최신순으로 페이징하여 반환한다.
+   *
+   * @param userId 조회할 사용자 ID
+   * @param pageable 페이징 정보
+   * @return 위시리스트 항목 페이지
+   */
   @Query(
       value =
           "SELECT w.perfume.id AS perfumeId, w.perfume.imageUrl AS imageUrl, w.perfume.brand AS brand, w.perfume.name AS name FROM Wishlist w WHERE w.user.userId = :userId ORDER BY w.createdAt DESC",
       countQuery = "SELECT COUNT(w) FROM Wishlist w WHERE w.user.userId = :userId")
   Page<WishlistResponse> findPageByUserId(@Param("userId") Integer userId, Pageable pageable);
 
+  /**
+   * 향수 목록 중 사용자가 위시리스트에 추가한 향수 ID만 반환한다.
+   *
+   * <p>향수 카드 목록의 위시리스트 여부를 한 번의 IN 쿼리로 확인하기 위해 사용한다.
+   *
+   * @param userId 조회할 사용자 ID
+   * @param perfumeIds 위시리스트 여부를 확인할 향수 ID 목록
+   * @return 위시리스트에 등록된 향수 ID 목록
+   */
   @Query(
       "SELECT w.perfume.id FROM Wishlist w WHERE w.user.userId = :userId AND w.perfume.id IN :perfumeIds")
   List<Long> findWishlistedPerfumeIds(

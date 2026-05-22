@@ -73,6 +73,15 @@ public class AuthService {
     return user;
   }
 
+  /**
+   * 사용자 프로필을 수정한다. 닉네임과 전화번호만 변경 가능하다.
+   *
+   * <p>닉네임 중복 시 {@link AuthConflictException}을 던진다.
+   *
+   * @param userId 수정할 사용자 ID
+   * @param request 프로필 수정 요청 (닉네임, 전화번호)
+   * @return 갱신된 사용자 엔티티
+   */
   @Transactional
   public User updateProfile(Integer userId, UpdateProfileRequest request) {
     User user = getCurrentUser(userId);

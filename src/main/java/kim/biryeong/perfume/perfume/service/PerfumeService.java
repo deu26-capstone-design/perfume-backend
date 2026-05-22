@@ -51,6 +51,20 @@ public class PerfumeService {
     this.wishlistService = wishlistService;
   }
 
+  /**
+   * 향수 목록을 필터/정렬 조건에 따라 페이징하여 반환한다.
+   *
+   * <p>accords 필터는 AND 조건이다. 로그인 사용자의 경우 위시리스트 여부를 함께 반환한다.
+   *
+   * @param keyword 검색어 (향수명 또는 브랜드명). null이면 전체 조회
+   * @param gender 성별 필터 ("M", "W", "U"). null이면 전체 조회
+   * @param accords 향 계열 필터 목록 (AND 조건). null 또는 빈 목록이면 전체 조회
+   * @param sort 정렬 기준 ("rating_asc" 외에는 내림차순)
+   * @param page 페이지 번호 (0-based)
+   * @param size 페이지당 항목 수
+   * @param userId 로그인 사용자 ID. 비로그인 시 null
+   * @return 향수 카드 목록과 페이징 메타데이터
+   */
   @Transactional(readOnly = true)
   public PerfumeListResponse getPerfumes(
       String keyword,
@@ -96,6 +110,15 @@ public class PerfumeService {
         projectionPage.getTotalPages());
   }
 
+  /**
+   * 특정 향 계열에 속한 향수 목록을 향 계열 비율 내림차순으로 페이징하여 반환한다.
+   *
+   * @param accordName 향 계열 이름
+   * @param page 페이지 번호 (0-based)
+   * @param size 페이지당 항목 수
+   * @param userId 로그인 사용자 ID. 비로그인 시 null
+   * @return 향수 카드 목록과 페이징 메타데이터
+   */
   @Transactional(readOnly = true)
   public PerfumeListResponse getAccordPerfumes(
       String accordName, int page, int size, Integer userId) {
@@ -124,6 +147,13 @@ public class PerfumeService {
         projectionPage.getTotalPages());
   }
 
+  /**
+   * 향수 상세 정보를 조회한다.
+   *
+   * @param id 향수 ID
+   * @param userId 로그인 사용자 ID. 비로그인 시 null (위시리스트 여부가 항상 false로 반환됨)
+   * @return 향수 상세 정보 (향 계열, 노트, 통계, 위시리스트 여부 포함)
+   */
   @Transactional(readOnly = true)
   public PerfumeDetailResponse getPerfumeDetail(Long id, Integer userId) {
     Perfume perfume =
