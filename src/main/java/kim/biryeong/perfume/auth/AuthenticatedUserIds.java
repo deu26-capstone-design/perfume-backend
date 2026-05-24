@@ -23,6 +23,18 @@ public final class AuthenticatedUserIds {
     throw unauthorized();
   }
 
+  public static Integer currentUserIdOrNull(Authentication authentication) {
+    if (authentication instanceof JwtAuthenticationToken jwtAuthentication) {
+      Jwt jwt = jwtAuthentication.getToken();
+      try {
+        return Integer.valueOf(jwt.getSubject());
+      } catch (NumberFormatException ignored) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   private static ResponseStatusException unauthorized() {
     return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "JWT authentication is required");
   }

@@ -13,7 +13,11 @@ import lombok.Setter;
 @Entity
 @Table(
     name = "reviews",
-    uniqueConstraints = @UniqueConstraint(columnNames = {"perfume_id", "user_id"}))
+    uniqueConstraints = @UniqueConstraint(columnNames = {"perfume_id", "user_id"}),
+    indexes = {
+      @Index(name = "idx_reviews_user_created_id", columnList = "user_id, created_at, id"),
+      @Index(name = "idx_reviews_perfume_created_id", columnList = "perfume_id, created_at, id")
+    })
 @Getter
 @Setter
 @NoArgsConstructor

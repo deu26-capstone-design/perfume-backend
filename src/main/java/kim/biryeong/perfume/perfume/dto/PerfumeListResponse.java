@@ -2,14 +2,16 @@ package kim.biryeong.perfume.perfume.dto;
 
 import java.util.List;
 import lombok.Getter;
-import org.springframework.data.domain.Page;
 
 /** 향수 목록 조회 응답. 카드 목록과 클라이언트 페이징에 필요한 메타데이터를 포함한다. */
 @Getter
 public class PerfumeListResponse {
 
-  /** 현재 페이지의 향수 카드 목록. 각 항목은 id, imageUrl, brand, name, gender, rating, reviewCount를 포함한다. */
-  private final List<PerfumeCardProjection> content;
+  /**
+   * 현재 페이지의 향수 카드 목록. 각 항목은 id, imageUrl, brand, name, gender, rating, reviewCount, isWishlisted를
+   * 포함한다.
+   */
+  private final List<PerfumeCardDto> content;
 
   /** 현재 페이지 번호. 0부터 시작한다. */
   private final int pageNum;
@@ -26,13 +28,18 @@ public class PerfumeListResponse {
   /** 현재 필터/검색 조건과 size 기준으로 계산된 전체 페이지 수 */
   private final int totalPages;
 
-  /** Spring Data {@link Page} 결과를 공개 응답 계약으로 변환한다. */
-  public PerfumeListResponse(Page<PerfumeCardProjection> page) {
-    this.content = page.getContent();
-    this.pageNum = page.getNumber();
-    this.size = page.getSize();
-    this.hasNext = page.hasNext();
-    this.totalElements = page.getTotalElements();
-    this.totalPages = page.getTotalPages();
+  public PerfumeListResponse(
+      List<PerfumeCardDto> content,
+      int pageNum,
+      int size,
+      boolean hasNext,
+      long totalElements,
+      int totalPages) {
+    this.content = content;
+    this.pageNum = pageNum;
+    this.size = size;
+    this.hasNext = hasNext;
+    this.totalElements = totalElements;
+    this.totalPages = totalPages;
   }
 }

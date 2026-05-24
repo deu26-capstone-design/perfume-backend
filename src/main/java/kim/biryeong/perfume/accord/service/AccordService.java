@@ -55,10 +55,21 @@ public class AccordService {
     return new AccordNotePageResponse(notes);
   }
 
+  /**
+   * 향 계열에 속한 향수 목록을 페이징하여 반환한다.
+   *
+   * <p>위시리스트 여부 표시를 위해 PerfumeService에 위임한다.
+   *
+   * @param id 향 계열 ID
+   * @param page 페이지 번호 (0-based)
+   * @param size 페이지당 항목 수
+   * @param userId 로그인 사용자 ID. 비로그인 시 null
+   * @return 향수 카드 목록과 페이징 메타데이터
+   */
   @Transactional(readOnly = true)
-  public PerfumeListResponse getAccordPerfumes(Long id, int page, int size) {
+  public PerfumeListResponse getAccordPerfumes(Long id, int page, int size, Integer userId) {
     Accord accord = findAccordById(id);
-    return perfumeService.getAccordPerfumes(accord.getName(), page, size);
+    return perfumeService.getAccordPerfumes(accord.getName(), page, size, userId);
   }
 
   private Accord findAccordById(Long id) {

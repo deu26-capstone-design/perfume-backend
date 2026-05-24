@@ -66,9 +66,9 @@ class AccordServiceTest {
   void getAccordPerfumesUsesAccordNameForLookup() {
     when(accordRepository.findById(2L)).thenReturn(Optional.of(accord("Woody")));
 
-    accordService.getAccordPerfumes(2L, 1, 20);
+    accordService.getAccordPerfumes(2L, 1, 20, null);
 
-    verify(perfumeService).getAccordPerfumes("Woody", 1, 20);
+    verify(perfumeService).getAccordPerfumes("Woody", 1, 20, null);
   }
 
   private static Accord accord(String name) {

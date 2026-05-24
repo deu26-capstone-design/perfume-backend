@@ -35,4 +35,21 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
       countQuery = "SELECT COUNT(r) FROM Review r WHERE r.perfume.id = :perfumeId")
   Page<Review> findByPerfumeIdOrderByCreatedAtDescIdDesc(
       @Param("perfumeId") Long perfumeId, Pageable pageable);
+
+  /**
+   * 사용자가 작성한 리뷰 목록을 최신순으로 페이징하여 반환한다.
+   *
+   * <p>JOIN FETCH로 perfume을 함께 로딩하여 N+1 문제를 방지한다.
+   *
+   * @param userId 조회할 사용자 ID
+   * @param pageable 페이징 정보
+   * @return 리뷰 페이지
+   */
+  @Query(
+      value =
+          "SELECT r FROM Review r JOIN FETCH r.perfume WHERE r.user.userId = :userId"
+              + " ORDER BY r.createdAt DESC, r.id DESC",
+      countQuery = "SELECT COUNT(r) FROM Review r WHERE r.user.userId = :userId")
+  Page<Review> findByUserIdOrderByCreatedAtDescIdDesc(
+      @Param("userId") Integer userId, Pageable pageable);
 }

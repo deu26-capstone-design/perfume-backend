@@ -10,6 +10,7 @@ import java.util.Set;
 import kim.biryeong.perfume.auth.cookie.AuthCookieFactory;
 import kim.biryeong.perfume.auth.cookie.CookieBearerTokenResolver;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -23,7 +24,9 @@ public class CookieCsrfEnforcementFilter extends OncePerRequestFilter {
       HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
       throws ServletException, IOException {
     if (requiresCookieCsrfCheck(request) && !hasValidDoubleSubmitToken(request)) {
-      response.sendError(HttpStatus.FORBIDDEN.value(), "CSRF token is required");
+      response.setStatus(HttpStatus.FORBIDDEN.value());
+      response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+      response.getWriter().write("{\"message\": \"CSRF 토큰이 필요합니다.\"}");
       return;
     }
     filterChain.doFilter(request, response);

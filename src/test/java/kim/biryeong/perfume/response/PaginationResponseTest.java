@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
 import java.util.List;
+import kim.biryeong.perfume.perfume.dto.PerfumeCardDto;
 import kim.biryeong.perfume.perfume.dto.PerfumeCardProjection;
 import kim.biryeong.perfume.perfume.dto.PerfumeListResponse;
 import kim.biryeong.perfume.review.dto.ReviewItemDto;
@@ -17,9 +18,8 @@ class PaginationResponseTest {
 
   @Test
   void perfumeListResponseIncludesPaginationMetadata() {
-    PerfumeListResponse response =
-        new PerfumeListResponse(
-            new PageImpl<>(List.of(new TestPerfumeCardProjection()), PageRequest.of(0, 1), 2));
+    PerfumeCardDto card = new PerfumeCardDto(new TestPerfumeCardProjection(), false);
+    PerfumeListResponse response = new PerfumeListResponse(List.of(card), 0, 1, true, 2, 2);
 
     assertTrue(response.isHasNext());
     assertEquals(2, response.getTotalElements());
@@ -33,6 +33,7 @@ class PaginationResponseTest {
             new PageImpl<>(
                 List.of(
                     new ReviewItemDto(
+                        1L,
                         "nick",
                         null,
                         5,

@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.time.LocalDate;
 import kim.biryeong.perfume.auth.dto.LoginRequest;
 import kim.biryeong.perfume.auth.dto.SignupRequest;
+import kim.biryeong.perfume.auth.dto.UpdateProfileRequest;
 import kim.biryeong.perfume.user.domain.User;
 import kim.biryeong.perfume.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -58,6 +59,31 @@ class LocalAuthServiceTest {
     authService.signup(signupRequest("first@example.com", "duplicate"));
 
     assertThatThrownBy(() -> authService.signup(signupRequest("second@example.com", "duplicate")))
+        .isInstanceOf(AuthConflictException.class)
+        .hasMessage("nickname already exists");
+  }
+
+  @Test
+  void updateProfileAllowsSameNickname() {
+    User user = authService.signup(signupRequest("same@example.com", "samenick"));
+
+    User updated =
+        authService.updateProfile(
+            user.getUserId(), new UpdateProfileRequest("samenick", "01099998888"));
+
+    assertThat(updated.getNickname()).isEqualTo("samenick");
+    assertThat(updated.getPhoneNumber()).isEqualTo("01099998888");
+  }
+
+  @Test
+  void updateProfileRejectsDuplicateNickname() {
+    authService.signup(signupRequest("user1@example.com", "nick1"));
+    User user2 = authService.signup(signupRequest("user2@example.com", "nick2"));
+
+    assertThatThrownBy(
+            () ->
+                authService.updateProfile(
+                    user2.getUserId(), new UpdateProfileRequest("nick1", "01012345678")))
         .isInstanceOf(AuthConflictException.class)
         .hasMessage("nickname already exists");
   }
