@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import kim.biryeong.perfume.perfume.domain.Perfume;
@@ -244,7 +245,21 @@ class ReviewServiceTest {
   }
 
   @Test
+  void getMyReviewsRejectsMissingUser() {
+    when(userRepository.existsById(7)).thenReturn(false);
+
+    ResponseStatusException exception =
+        assertThrows(ResponseStatusException.class, () -> reviewService.getMyReviews(7, 0, 30));
+
+    assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    verify(reviewRepository, never())
+        .findByUserIdOrderByCreatedAtDescIdDesc(
+            org.mockito.ArgumentMatchers.anyInt(), org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
   void getMyReviewsMapsSeasonAndScentCorrectly() {
+    when(userRepository.existsById(7)).thenReturn(true);
     User owner = new User();
     ReflectionTestUtils.setField(owner, "userId", 7);
 
@@ -254,7 +269,9 @@ class ReviewServiceTest {
     ReflectionTestUtils.setField(perfume, "brand", "Test Brand");
     ReflectionTestUtils.setField(perfume, "imageUrl", "https://example.com/test.jpg");
 
-    Review review = new Review(1L, perfume, owner, 5, 2, "좋아요.", true, LocalDateTime.now());
+    Review review =
+        new Review(
+            1L, perfume, owner, 5, 2, "좋아요.", true, LocalDateTime.now(ZoneId.systemDefault()));
 
     ReviewSeason reviewSeason = new ReviewSeason(review, Season.SPRING);
     ReviewScent reviewScent = new ReviewScent(1L, review, ScentName.FLORAL);

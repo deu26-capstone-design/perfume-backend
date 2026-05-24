@@ -210,6 +210,10 @@ public class ReviewService {
 
   @Transactional(readOnly = true)
   public MyReviewListResponse getMyReviews(Integer userId, int page, int size) {
+    if (!userRepository.existsById(userId)) {
+      throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증이 필요합니다.");
+    }
+
     PageRequest pageable = PageRequest.of(page, size);
     Page<Review> reviewPage =
         reviewRepository.findByUserIdOrderByCreatedAtDescIdDesc(userId, pageable);

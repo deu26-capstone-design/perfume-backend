@@ -275,7 +275,7 @@ GET /api/auth/me
 
 | HTTP status | 조건 | 대표 메시지 |
 | --- | --- | --- |
-| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아니거나 현재 사용자를 찾을 수 없음 | 인증 실패 응답 |
 
 ### 로그아웃
 
@@ -1024,13 +1024,13 @@ PATCH /api/auth/me
 
 | 필드 | 타입 | 필수 | 검증 | 설명 |
 | --- | --- | --- | --- | --- |
-| `nickname` | string | yes | 최대 10자, 한글/영문/숫자만 허용 | 닉네임 |
-| `phoneNumber` | string | yes | `\d{3}-\d{4}-\d{4}` 형식 | 휴대폰 번호 |
+| `nickname` | string | yes | 최대 24자 | 닉네임 |
+| `phoneNumber` | string | yes | 최대 15자 | 휴대폰 번호 |
 
 ```json
 {
   "nickname": "gildong",
-  "phoneNumber": "010-1234-5678"
+  "phoneNumber": "01012345678"
 }
 ```
 
@@ -1056,7 +1056,7 @@ PATCH /api/auth/me
   "nickname": "gildong",
   "gender": "M",
   "birthDate": "1995-03-15",
-  "phoneNumber": "010-1234-5678",
+  "phoneNumber": "01012345678",
   "oauthProvider": "GOOGLE",
   "profileCompleted": true
 }
@@ -1067,7 +1067,7 @@ PATCH /api/auth/me
 | HTTP status | 조건 | 대표 메시지 |
 | --- | --- | --- |
 | `400 Bad Request` | 요청 본문 검증 실패 | 검증 메시지 |
-| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아니거나 현재 사용자를 찾을 수 없음 | 인증 실패 응답 |
 | `403 Forbidden` | JWT 쿠키 기반 요청에서 CSRF 토큰이 없거나 일치하지 않음 | CSRF 실패 응답 |
 | `409 Conflict` | 다른 사용자가 이미 사용 중인 닉네임 | `nickname already exists` |
 
@@ -1138,7 +1138,7 @@ GET /api/auth/me/reviews
 | HTTP status | 조건 | 대표 메시지 |
 | --- | --- | --- |
 | `400 Bad Request` | `page`, `size` 검증 실패 | 검증 메시지 |
-| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아니거나 현재 사용자를 찾을 수 없음 | 인증 실패 응답 |
 
 ### 리뷰 수정
 

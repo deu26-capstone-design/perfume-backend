@@ -174,7 +174,7 @@ class AuthControllerSecurityTest {
   }
 
   @Test
-  void signupRejectsInvalidPhoneFormat() throws Exception {
+  void signupAllowsExistingPhoneNumberContract() throws Exception {
     mockMvc
         .perform(
             post("/api/auth/signup")
@@ -191,7 +191,8 @@ class AuthControllerSecurityTest {
 										"phoneNumber": "01012345678"
 										}
 										"""))
-        .andExpect(status().isBadRequest());
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.phoneNumber").value("01012345678"));
   }
 
   @Test
@@ -735,12 +736,12 @@ class AuthControllerSecurityTest {
                     """
                     {
                     "nickname": "newnick",
-                    "phoneNumber": "010-9999-8888"
+                    "phoneNumber": "01099998888"
                     }
                     """))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.nickname").value("newnick"))
-        .andExpect(jsonPath("$.phoneNumber").value("010-9999-8888"));
+        .andExpect(jsonPath("$.phoneNumber").value("01099998888"));
 
     AuditLog auditLog = onlyAuditLog();
     assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_PROFILE_UPDATE);
@@ -858,6 +859,24 @@ class AuthControllerSecurityTest {
   @Test
   void myReviewsRequiresAuthentication() throws Exception {
     mockMvc.perform(get("/api/auth/me/reviews")).andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void myReviewsRejectsDeletedUserToken() throws Exception {
+    Cookie deletedUserCookie = authCookie();
+    userRepository.delete(user);
+    userRepository.flush();
+
+    mockMvc
+        .perform(get("/api/auth/me/reviews").cookie(deletedUserCookie))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void myReviewsRejectsMalformedJwtSubject() throws Exception {
+    mockMvc
+        .perform(get("/api/auth/me/reviews").cookie(invalidSubjectAuthCookie()))
+        .andExpect(status().isUnauthorized());
   }
 
   @Test

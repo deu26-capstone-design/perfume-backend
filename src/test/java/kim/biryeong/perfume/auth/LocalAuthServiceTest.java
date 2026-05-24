@@ -37,7 +37,7 @@ class LocalAuthServiceTest {
     assertThat(user.getNickname()).isEqualTo("newnick");
     assertThat(user.getGender()).isEqualTo("F");
     assertThat(user.getBirthDate()).isEqualTo(LocalDate.of(1999, 5, 1));
-    assertThat(user.getPhoneNumber()).isEqualTo("010-1234-5678");
+    assertThat(user.getPhoneNumber()).isEqualTo("01012345678");
     assertThat(user.isProfileCompleted()).isTrue();
     assertThat(user.getOauthProvider()).isNull();
     assertThat(user.getOauthProviderId()).isNull();
@@ -69,10 +69,10 @@ class LocalAuthServiceTest {
 
     User updated =
         authService.updateProfile(
-            user.getUserId(), new UpdateProfileRequest("samenick", "010-9999-8888"));
+            user.getUserId(), new UpdateProfileRequest("samenick", "01099998888"));
 
     assertThat(updated.getNickname()).isEqualTo("samenick");
-    assertThat(updated.getPhoneNumber()).isEqualTo("010-9999-8888");
+    assertThat(updated.getPhoneNumber()).isEqualTo("01099998888");
   }
 
   @Test
@@ -83,7 +83,7 @@ class LocalAuthServiceTest {
     assertThatThrownBy(
             () ->
                 authService.updateProfile(
-                    user2.getUserId(), new UpdateProfileRequest("nick1", "010-1234-5678")))
+                    user2.getUserId(), new UpdateProfileRequest("nick1", "01012345678")))
         .isInstanceOf(AuthConflictException.class)
         .hasMessage("nickname already exists");
   }
@@ -129,7 +129,7 @@ class LocalAuthServiceTest {
         nickname,
         "F",
         LocalDate.of(1999, 5, 1),
-        "010-1234-5678");
+        "01012345678");
   }
 
   static class PasswordEncoderConfig {

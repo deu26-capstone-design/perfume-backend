@@ -1,7 +1,6 @@
 package kim.biryeong.perfume.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -13,10 +12,7 @@ import jakarta.validation.constraints.Size;
  * @param phoneNumber 사용자 전화번호이며 최대 15자까지 허용됩니다
  */
 public record UpdateProfileRequest(
-    @NotBlank(message = "닉네임은 필수입니다.")
-        @Size(max = 10, message = "입력한 값을 다시 확인해주세요.")
-        @Pattern(regexp = "^[a-zA-Z0-9가-힣]+$", message = "닉네임은 한글, 영문, 숫자만 사용할 수 있습니다.")
+    @NotBlank(message = "닉네임은 필수입니다.") @Size(max = 24, message = "입력한 값을 다시 확인해주세요.")
         String nickname,
-    @NotBlank(message = "휴대폰 번호는 필수입니다.")
-        @Pattern(regexp = "^\\d{3}-\\d{4}-\\d{4}$", message = "입력한 값을 다시 확인해주세요.")
+    @NotBlank(message = "휴대폰 번호는 필수입니다.") @Size(max = 15, message = "입력한 값을 다시 확인해주세요.")
         String phoneNumber) {}

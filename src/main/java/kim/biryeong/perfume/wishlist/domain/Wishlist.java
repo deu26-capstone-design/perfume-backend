@@ -10,7 +10,12 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 @Entity
-@Table(name = "wishlist")
+@Table(
+    name = "wishlist",
+    indexes =
+        @Index(
+            name = "idx_wishlist_user_created_perfume",
+            columnList = "user_id, created_at, perfume_id"))
 @IdClass(WishlistId.class)
 @Getter
 @Setter
@@ -28,7 +33,7 @@ public class Wishlist {
   private User user;
 
   @CreationTimestamp
-  @Column(updatable = false)
+  @Column(name = "created_at", nullable = false, updatable = false)
   private LocalDateTime createdAt;
 
   public Wishlist(Perfume perfume, User user) {
