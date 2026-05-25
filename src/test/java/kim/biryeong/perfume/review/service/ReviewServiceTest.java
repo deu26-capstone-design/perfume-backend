@@ -15,6 +15,7 @@ import java.util.Optional;
 import kim.biryeong.perfume.perfume.domain.Perfume;
 import kim.biryeong.perfume.perfume.dto.StatsDto;
 import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
+import kim.biryeong.perfume.preference.service.PreferenceService;
 import kim.biryeong.perfume.review.domain.Review;
 import kim.biryeong.perfume.review.domain.ReviewScent;
 import kim.biryeong.perfume.review.domain.ReviewSeason;
@@ -45,6 +46,7 @@ class ReviewServiceTest {
   private ReviewRepository reviewRepository;
   private ReviewSeasonRepository reviewSeasonRepository;
   private ReviewScentRepository reviewScentRepository;
+  private PreferenceService preferenceService;
   private ReviewService reviewService;
 
   @BeforeEach
@@ -54,13 +56,15 @@ class ReviewServiceTest {
     reviewRepository = mock(ReviewRepository.class);
     reviewSeasonRepository = mock(ReviewSeasonRepository.class);
     reviewScentRepository = mock(ReviewScentRepository.class);
+    preferenceService = mock(PreferenceService.class);
     reviewService =
         new ReviewService(
             perfumeRepository,
             userRepository,
             reviewRepository,
             reviewSeasonRepository,
-            reviewScentRepository);
+            reviewScentRepository,
+            preferenceService);
   }
 
   @Test
@@ -123,6 +127,30 @@ class ReviewServiceTest {
             () -> reviewService.createReview(10L, 7, request(List.of(), List.of())));
 
     assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+  }
+
+  @Test
+  void createReviewCallsApplyReviewCreate() {
+    Perfume perfume = new Perfume();
+    User user = new User();
+    ReflectionTestUtils.setField(user, "userId", 7);
+    Review savedReview =
+        new Review(
+            1L, perfume, user, 5, 3, "좋아요.", true, LocalDateTime.now(ZoneId.systemDefault()));
+
+    when(perfumeRepository.findById(10L)).thenReturn(Optional.of(perfume));
+    when(userRepository.findById(7)).thenReturn(Optional.of(user));
+    when(reviewRepository.existsByPerfumeIdAndUserId(10L, 7)).thenReturn(false);
+    when(reviewRepository.save(org.mockito.ArgumentMatchers.any())).thenReturn(savedReview);
+    when(reviewRepository.findByPerfumeId(10L)).thenReturn(List.of(savedReview));
+    when(reviewSeasonRepository.findByPerfumeId(10L)).thenReturn(List.of());
+
+    reviewService.createReview(10L, 7, request(List.of("봄"), List.of("꽃 향")));
+
+    verify(preferenceService)
+        .applyReviewCreate(
+            org.mockito.ArgumentMatchers.eq(7),
+            org.mockito.ArgumentMatchers.eq(List.of(ScentName.FLORAL)));
   }
 
   @Test
@@ -222,6 +250,26 @@ class ReviewServiceTest {
   }
 
   @Test
+  void updateReviewCallsApplyReviewUpdate() {
+    User owner = new User();
+    ReflectionTestUtils.setField(owner, "userId", 7);
+    Review review = new Review(1L, new Perfume(), owner, 5, null, null, true, null);
+
+    when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+    when(reviewSeasonRepository.findByReviewIds(List.of(1L))).thenReturn(List.of());
+    when(reviewScentRepository.findByReviewIds(List.of(1L)))
+        .thenReturn(List.of(new ReviewScent(1L, review, ScentName.WOODY)));
+
+    reviewService.updateReview(1L, 7, updateRequest(true));
+
+    verify(preferenceService)
+        .applyReviewUpdate(
+            org.mockito.ArgumentMatchers.eq(7),
+            org.mockito.ArgumentMatchers.eq(List.of(ScentName.WOODY)),
+            org.mockito.ArgumentMatchers.eq(List.of(ScentName.FLORAL)));
+  }
+
+  @Test
   void deleteReviewRejectsMissingReview() {
     when(reviewRepository.findById(1L)).thenReturn(Optional.empty());
 
@@ -242,6 +290,25 @@ class ReviewServiceTest {
         assertThrows(ResponseStatusException.class, () -> reviewService.deleteReview(1L, 7));
 
     assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+  }
+
+  @Test
+  void deleteReviewCallsApplyReviewDelete() {
+    User owner = new User();
+    ReflectionTestUtils.setField(owner, "userId", 7);
+    Review review = new Review(1L, new Perfume(), owner, 5, null, null, true, null);
+
+    when(reviewRepository.findById(1L)).thenReturn(Optional.of(review));
+    when(reviewSeasonRepository.findByReviewIds(List.of(1L))).thenReturn(List.of());
+    when(reviewScentRepository.findByReviewIds(List.of(1L)))
+        .thenReturn(List.of(new ReviewScent(1L, review, ScentName.FLORAL)));
+
+    reviewService.deleteReview(1L, 7);
+
+    verify(preferenceService)
+        .applyReviewDelete(
+            org.mockito.ArgumentMatchers.eq(7),
+            org.mockito.ArgumentMatchers.eq(List.of(ScentName.FLORAL)));
   }
 
   @Test
@@ -289,6 +356,20 @@ class ReviewServiceTest {
     assertEquals("꽃 향", dto.getScents().get(0));
     assertEquals("Test Perfume", dto.getPerfumeName());
     assertEquals(10L, dto.getPerfumeId());
+  }
+
+  @Test
+  void getExistingReviewScentsReturnsScentsForUser() {
+    Review review = new Review(1L, new Perfume(), new User(), 5, null, null, true, null);
+    when(reviewScentRepository.findAllByReviewUserId(7))
+        .thenReturn(
+            List.of(
+                new ReviewScent(1L, review, ScentName.FLORAL),
+                new ReviewScent(2L, review, ScentName.WOODY)));
+
+    List<ScentName> result = reviewService.getExistingReviewScents(7);
+
+    assertEquals(List.of(ScentName.FLORAL, ScentName.WOODY), result);
   }
 
   private static ReviewRequest request(List<String> seasons, List<String> scents) {
