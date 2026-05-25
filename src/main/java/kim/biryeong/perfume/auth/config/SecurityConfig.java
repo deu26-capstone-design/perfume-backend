@@ -80,6 +80,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/perfumes", "/api/perfumes/**")
                     .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/layering/recommendations")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .oauth2Login(oauth2 -> oauth2.successHandler(successHandler).failureHandler(failureHandler))

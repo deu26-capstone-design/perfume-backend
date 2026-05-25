@@ -637,6 +637,137 @@ GET /api/perfumes/{id}
 | `400 Bad Request` | `id`가 1보다 작음 |
 | `404 Not Found` | 향수 ID가 존재하지 않음 |
 
+## Layering API
+
+Layering API는 공개 API입니다. JWT 인증과 CSRF 토큰 없이 호출할 수 있습니다. 브라우저에 만료되었거나 손상된
+`PERFUME_ACCESS_TOKEN` 쿠키가 남아 있어도 이 공개 API에서는 해당 쿠키를 인증 시도로 사용하지 않습니다. 단,
+명시적인 `Authorization: Bearer {token}` 헤더를 보내면 기존 JWT 인증 흐름을 그대로 따릅니다. 외부 AI 호출 없이 서버
+내부 어코드 매트릭스, 향수 어코드 비율, 노트 구조, 리소스 CSV 문구만 사용해 deterministic 결과를 반환합니다.
+
+### 향수 레이어링 추천
+
+```http
+POST /api/layering/recommendations
+```
+
+서로 다른 향수 2개의 레이어링 궁합을 평가합니다. 후보를 여러 개 추천하는 API가 아니며, 입력된 두 향수의 조합에 대한
+추천 여부, 점수, 이유, 주의점, 무드 컬러를 반환합니다. 응답에는 레이어링 순서, 분사량, 착용 방법을 포함하지 않습니다.
+
+#### Request body
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+| --- | --- | --- | --- | --- |
+| `perfumeIds` | array[number] | yes | 정확히 2개, 각 값 `1` 이상, 중복 불가 | 평가할 향수 ID 목록 |
+
+```json
+{
+  "perfumeIds": [4367, 10806]
+}
+```
+
+#### Response `200 OK`
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `inputPerfumes` | array | 요청으로 들어온 2개 향수의 기본 정보와 주요 어코드 |
+| `inputPerfumes[].id` | number | 향수 ID |
+| `inputPerfumes[].brand` | string | 브랜드명 |
+| `inputPerfumes[].name` | string | 향수명 |
+| `inputPerfumes[].dominantAccords` | array | 추천 판단에 주로 기여한 상위 어코드. 최대 3개 |
+| `inputPerfumes[].dominantAccords[].name` | string | 정규화된 어코드 이름 |
+| `inputPerfumes[].dominantAccords[].ratio` | number | 원본 `perfume_accords.ratio` 값 |
+| `recommendation.candidateType` | string | MVP에서는 항상 `PAIR` |
+| `recommendation.recommended` | boolean | `score >= 75`이면 `true` |
+| `recommendation.decision` | string | `RECOMMENDED`, `TRY_IF_YOU_LIKE_THIS_MOOD`, `NOT_RECOMMENDED` 중 하나 |
+| `recommendation.score` | number | 0~100 정수 점수 |
+| `recommendation.title` | string | dominant accord 기반 제목 |
+| `recommendation.summary` | string | 사용자 표시용 한 문장 요약 |
+| `recommendation.color.name` | string | 어코드 페어에 매핑된 컬러 이름 |
+| `recommendation.color.hex` | string | `#RRGGBB` 형식 대표 컬러 |
+| `recommendation.color.sourceAccord` | string | 컬러 산정에 사용한 source accord |
+| `recommendation.color.targetAccord` | string | 컬러 산정에 사용한 target accord |
+| `recommendation.color.description` | string | 컬러가 표현하는 향 무드 설명 |
+| `recommendation.bestFor` | array[string] | 어코드 narrative 기반 계절/상황 태그 |
+| `recommendation.reasons` | array[string] | 추천 또는 평가 근거. 최대 3개 |
+| `recommendation.warnings` | array[string] | 주의점. 최대 2개 |
+| `recommendation.scoreBreakdown.matrix` | number | matrix compatibility 기반 점수 |
+| `recommendation.scoreBreakdown.structure` | number | top/heart/base 구조 기반 점수 |
+| `recommendation.scoreBreakdown.balance` | number | 조합 균형 점수 |
+| `recommendation.scoreBreakdown.penalty` | number | overload, volatility risk 등 penalty 합계 |
+
+```json
+{
+  "inputPerfumes": [
+    {
+      "id": 4367,
+      "brand": "Lush",
+      "name": "Karma",
+      "dominantAccords": [
+        {
+          "name": "Citrus",
+          "ratio": 100
+        }
+      ]
+    },
+    {
+      "id": 10806,
+      "brand": "Lush",
+      "name": "Lust",
+      "dominantAccords": [
+        {
+          "name": "Floral",
+          "ratio": 100
+        }
+      ]
+    }
+  ],
+  "recommendation": {
+    "candidateType": "PAIR",
+    "recommended": true,
+    "decision": "RECOMMENDED",
+    "score": 78,
+    "title": "밝은 시트러스와 부드러운 플로럴",
+    "summary": "시트러스의 산뜻함이 조합의 첫인상을 환하게 엽니다. 조합에 감정과 부드러운 표정을 더합니다.",
+    "color": {
+      "name": "Zest Bloom",
+      "hex": "#F1BB7E",
+      "sourceAccord": "Citrus",
+      "targetAccord": "Floral",
+      "description": "시트러스와 플로럴 무드를 함께 표현하는 Zest Bloom 컬러입니다."
+    },
+    "bestFor": ["봄", "여름", "사계절"],
+    "reasons": [
+      "Citrus와 Floral의 궁합 점수가 높아 두 향의 연결이 자연스럽습니다."
+    ],
+    "warnings": [],
+    "scoreBreakdown": {
+      "matrix": 88,
+      "structure": 75,
+      "balance": 75,
+      "penalty": 0
+    }
+  }
+}
+```
+
+#### Decision values
+
+| 값 | 조건 | `recommended` |
+| --- | --- | --- |
+| `RECOMMENDED` | `score >= 75` | `true` |
+| `TRY_IF_YOU_LIKE_THIS_MOOD` | `60 <= score < 75` | `false` |
+| `NOT_RECOMMENDED` | `score < 60` | `false` |
+
+#### Error cases
+
+| HTTP status | 조건 | 대표 메시지 |
+| --- | --- | --- |
+| `400 Bad Request` | 향수 ID가 2개가 아님 | `향수는 정확히 2개를 선택해야 합니다.` |
+| `400 Bad Request` | 향수 ID 중복 | `서로 다른 향수 2개를 선택해야 합니다.` |
+| `400 Bad Request` | 향수 ID 값이 `1`보다 작음 | 검증 메시지 |
+| `400 Bad Request` | 향수 어코드 데이터가 없어 평가할 수 없음 | `향수 어코드 데이터가 부족합니다.` |
+| `404 Not Found` | 존재하지 않는 향수 ID 포함 | `존재하지 않는 향수 ID가 포함되어 있습니다.` |
+
 ## Review API
 
 ### 리뷰 목록 조회

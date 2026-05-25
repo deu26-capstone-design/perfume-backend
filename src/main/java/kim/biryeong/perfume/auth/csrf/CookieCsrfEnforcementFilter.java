@@ -17,6 +17,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class CookieCsrfEnforcementFilter extends OncePerRequestFilter {
 
   private static final Set<String> SAFE_METHODS = Set.of("GET", "HEAD", "OPTIONS", "TRACE");
+  private static final Set<String> CSRF_EXEMPT_UNSAFE_PATHS =
+      Set.of("/api/layering/recommendations");
   private static final String CSRF_HEADER_NAME = "X-XSRF-TOKEN";
 
   @Override
@@ -35,7 +37,8 @@ public class CookieCsrfEnforcementFilter extends OncePerRequestFilter {
   private boolean requiresCookieCsrfCheck(HttpServletRequest request) {
     return Boolean.TRUE.equals(
             request.getAttribute(CookieBearerTokenResolver.TOKEN_FROM_COOKIE_ATTRIBUTE))
-        && !SAFE_METHODS.contains(request.getMethod());
+        && !SAFE_METHODS.contains(request.getMethod())
+        && !CSRF_EXEMPT_UNSAFE_PATHS.contains(applicationPath(request));
   }
 
   private boolean hasValidDoubleSubmitToken(HttpServletRequest request) {
@@ -55,5 +58,14 @@ public class CookieCsrfEnforcementFilter extends OncePerRequestFilter {
       }
     }
     return null;
+  }
+
+  private static String applicationPath(HttpServletRequest request) {
+    String contextPath = request.getContextPath();
+    String requestUri = request.getRequestURI();
+    if (contextPath != null && !contextPath.isBlank() && requestUri.startsWith(contextPath)) {
+      return requestUri.substring(contextPath.length());
+    }
+    return requestUri;
   }
 }
