@@ -253,6 +253,9 @@ public final class PreferenceScoreCalculator {
 
   /** 가중치 맵 빌더 헬퍼. */
   private static Map<ScentName, Double> scents(Object... pairs) {
+    if (pairs.length % 2 != 0) {
+      throw new IllegalArgumentException("pairs 인자는 짝수 개여야 합니다.");
+    }
     Map<ScentName, Double> map = new EnumMap<>(ScentName.class);
     for (int i = 0; i < pairs.length; i += 2) {
       map.put((ScentName) pairs[i], (Double) pairs[i + 1]);
