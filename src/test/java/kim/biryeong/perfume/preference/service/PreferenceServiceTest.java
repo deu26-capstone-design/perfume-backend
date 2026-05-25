@@ -66,7 +66,7 @@ class PreferenceServiceTest {
     when(userRepository.findById(1)).thenReturn(Optional.of(user));
     ScentPreference existing = new ScentPreference();
     existing.setTestCompletedAt(LocalDateTime.now(ZoneId.systemDefault()));
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(existing));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(existing));
 
     assertThatThrownBy(() -> preferenceService.submitTest(1, validAnswers()))
         .isInstanceOf(ResponseStatusException.class)
@@ -80,7 +80,7 @@ class PreferenceServiceTest {
   void submitTestSavesPreferenceForNewUser() {
     User user = mock(User.class);
     when(userRepository.findById(1)).thenReturn(Optional.of(user));
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.empty());
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.empty());
     when(scentPreferenceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(reviewService.getExistingReviewScents(1)).thenReturn(List.of());
 
@@ -94,7 +94,7 @@ class PreferenceServiceTest {
     User user = mock(User.class);
     when(userRepository.findById(1)).thenReturn(Optional.of(user));
     ScentPreference preference = new ScentPreference();
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(preference));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(preference));
     when(scentPreferenceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(reviewService.getExistingReviewScents(1)).thenReturn(List.of());
 
@@ -108,7 +108,7 @@ class PreferenceServiceTest {
     User user = mock(User.class);
     when(userRepository.findById(1)).thenReturn(Optional.of(user));
     ScentPreference preference = new ScentPreference();
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(preference));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(preference));
     when(scentPreferenceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
     when(reviewService.getExistingReviewScents(1))
         .thenReturn(List.of(ScentName.FLORAL, ScentName.FLORAL, ScentName.WOODY));
@@ -125,7 +125,7 @@ class PreferenceServiceTest {
   void submitTestRejectsInvalidQuestionKeys() {
     User user = mock(User.class);
     when(userRepository.findById(1)).thenReturn(Optional.of(user));
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.empty());
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.empty());
 
     Map<Integer, String> answers = new HashMap<>();
     for (int i = 1; i <= 11; i++) {
@@ -357,7 +357,7 @@ class PreferenceServiceTest {
   @Test
   void applyReviewCreateSkipsWhenTestNotCompleted() {
     ScentPreference preference = new ScentPreference();
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(preference));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(preference));
 
     preferenceService.applyReviewCreate(1, List.of(ScentName.FLORAL));
 
@@ -366,7 +366,7 @@ class PreferenceServiceTest {
 
   @Test
   void applyReviewCreateSkipsWhenNoPreferenceRecord() {
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.empty());
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.empty());
 
     // 예외 없이 조용히 종료되어야 한다
     preferenceService.applyReviewCreate(1, List.of(ScentName.FLORAL));
@@ -375,7 +375,7 @@ class PreferenceServiceTest {
   @Test
   void applyReviewCreateAddsTwoPerScent() {
     ScentPreference preference = buildCompletedPreference();
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(preference));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(preference));
 
     preferenceService.applyReviewCreate(1, List.of(ScentName.FLORAL, ScentName.WOODY));
 
@@ -390,7 +390,7 @@ class PreferenceServiceTest {
   void applyReviewUpdateSubtractsOldAndAddsNew() {
     ScentPreference preference = buildCompletedPreference();
     preference.addReviewScore(ScentName.FLORAL, 6.0); // 기존 리뷰로 쌓인 점수
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(preference));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(preference));
 
     preferenceService.applyReviewUpdate(1, List.of(ScentName.FLORAL), List.of(ScentName.WOODY));
 
@@ -401,7 +401,7 @@ class PreferenceServiceTest {
   @Test
   void applyReviewUpdateSkipsWhenTestNotCompleted() {
     ScentPreference preference = new ScentPreference();
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(preference));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(preference));
 
     preferenceService.applyReviewUpdate(1, List.of(ScentName.FLORAL), List.of(ScentName.WOODY));
 
@@ -415,7 +415,7 @@ class PreferenceServiceTest {
   void applyReviewDeleteSubtractsTwoPerScent() {
     ScentPreference preference = buildCompletedPreference();
     preference.addReviewScore(ScentName.FLORAL, 8.0);
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(preference));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(preference));
 
     preferenceService.applyReviewDelete(1, List.of(ScentName.FLORAL));
 
@@ -426,7 +426,7 @@ class PreferenceServiceTest {
   void applyReviewDeleteFloorAtZero() {
     ScentPreference preference = buildCompletedPreference();
     // reviewFloral == 0.0 상태에서 삭제 시도
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.of(preference));
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.of(preference));
 
     preferenceService.applyReviewDelete(1, List.of(ScentName.FLORAL));
 
@@ -435,7 +435,7 @@ class PreferenceServiceTest {
 
   @Test
   void applyReviewDeleteSkipsWhenNoPreferenceRecord() {
-    when(scentPreferenceRepository.findByUserId(1)).thenReturn(Optional.empty());
+    when(scentPreferenceRepository.findWithLockByUserId(1)).thenReturn(Optional.empty());
 
     // 예외 없이 조용히 종료되어야 한다
     preferenceService.applyReviewDelete(1, List.of(ScentName.FLORAL));

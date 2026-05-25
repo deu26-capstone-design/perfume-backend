@@ -19,6 +19,7 @@ import kim.biryeong.perfume.review.service.ReviewService;
 import kim.biryeong.perfume.user.domain.User;
 import kim.biryeong.perfume.user.repository.UserRepository;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -155,7 +156,9 @@ public class PreferenceService {
     }
 
     ScentPreference preference =
-        scentPreferenceRepository.findByUserId(userId).orElseGet(() -> new ScentPreference(user));
+        scentPreferenceRepository
+            .findWithLockByUserId(userId)
+            .orElseGet(() -> new ScentPreference(user));
 
     if (preference.getTestCompletedAt() != null) {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 완료한 테스트입니다.");
@@ -180,7 +183,12 @@ public class PreferenceService {
     preference.setTestCompletedAt(LocalDateTime.now(ZoneId.systemDefault()));
     preference.setInProgressAnswers(null);
 
-    scentPreferenceRepository.save(preference);
+    // 동시 첫 제출로 unique 제약 위반이 발생하면 논리적 충돌(409)로 변환한다.
+    try {
+      scentPreferenceRepository.save(preference);
+    } catch (DataIntegrityViolationException e) {
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 완료한 테스트입니다.");
+    }
   }
 
   /**
@@ -204,6 +212,17 @@ public class PreferenceService {
 
     if (preference.getTestCompletedAt() != null) {
       throw new ResponseStatusException(HttpStatus.CONFLICT, "이미 완료한 테스트입니다.");
+    }
+
+    for (Map.Entry<Integer, String> entry : answers.entrySet()) {
+      Integer key = entry.getKey();
+      String value = entry.getValue();
+      if (key < 1 || key > 12) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "1번~12번 문항을 모두 응답해야 합니다.");
+      }
+      if (!Set.of("A", "B", "C", "D").contains(value)) {
+        throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효하지 않은 선택지입니다: " + value);
+      }
     }
 
     try {
@@ -244,8 +263,7 @@ public class PreferenceService {
 
     try {
       Map<Integer, String> answers =
-          objectMapper.readValue(
-              preference.getInProgressAnswers(), new TypeReference<Map<Integer, String>>() {});
+          objectMapper.readValue(preference.getInProgressAnswers(), new TypeReference<>() {});
       return new PreferenceProgressResponse(false, answers);
     } catch (JacksonException e) {
       throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "진행 상태 데이터가 손상되었습니다.");
@@ -337,7 +355,8 @@ public class PreferenceService {
    */
   @Transactional
   public void applyReviewCreate(Integer userId, List<ScentName> scents) {
-    ScentPreference preference = scentPreferenceRepository.findByUserId(userId).orElse(null);
+    ScentPreference preference =
+        scentPreferenceRepository.findWithLockByUserId(userId).orElse(null);
     if (preference == null || preference.getTestCompletedAt() == null) {
       return;
     }
@@ -360,7 +379,8 @@ public class PreferenceService {
   @Transactional
   public void applyReviewUpdate(
       Integer userId, List<ScentName> oldScents, List<ScentName> newScents) {
-    ScentPreference preference = scentPreferenceRepository.findByUserId(userId).orElse(null);
+    ScentPreference preference =
+        scentPreferenceRepository.findWithLockByUserId(userId).orElse(null);
     if (preference == null || preference.getTestCompletedAt() == null) {
       return;
     }
@@ -384,7 +404,8 @@ public class PreferenceService {
    */
   @Transactional
   public void applyReviewDelete(Integer userId, List<ScentName> scents) {
-    ScentPreference preference = scentPreferenceRepository.findByUserId(userId).orElse(null);
+    ScentPreference preference =
+        scentPreferenceRepository.findWithLockByUserId(userId).orElse(null);
     if (preference == null || preference.getTestCompletedAt() == null) {
       return;
     }
