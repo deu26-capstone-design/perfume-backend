@@ -73,11 +73,11 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
   }
 
   private boolean shouldAudit(HttpServletRequest request, AuditOutcome outcome) {
-    if (!request.getRequestURI().startsWith("/api/")) {
+    String path = applicationPath(request);
+    if (!path.startsWith("/api/")) {
       return false;
     }
-    if ("POST".equals(request.getMethod())
-        && READ_ONLY_POST_PATHS.contains(request.getRequestURI())) {
+    if ("POST".equals(request.getMethod()) && READ_ONLY_POST_PATHS.contains(path)) {
       return false;
     }
     return MUTATING_METHODS.contains(request.getMethod())
@@ -85,7 +85,7 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
   }
 
   private boolean isAuthCheckPath(HttpServletRequest request) {
-    String path = request.getRequestURI();
+    String path = applicationPath(request);
     return "GET".equals(request.getMethod())
         && ("/api/auth/me".equals(path) || "/api/auth/csrf".equals(path));
   }
@@ -97,7 +97,7 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
     }
 
     String method = request.getMethod();
-    String path = request.getRequestURI();
+    String path = applicationPath(request);
     if ("POST".equals(method) && "/api/auth/signup".equals(path)) {
       return AuditEventType.AUTH_SIGNUP;
     }
@@ -160,5 +160,14 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
       return "UNHANDLED_EXCEPTION";
     }
     return "HTTP_" + statusCode;
+  }
+
+  private static String applicationPath(HttpServletRequest request) {
+    String contextPath = request.getContextPath();
+    String requestUri = request.getRequestURI();
+    if (contextPath != null && !contextPath.isBlank() && requestUri.startsWith(contextPath)) {
+      return requestUri.substring(contextPath.length());
+    }
+    return requestUri;
   }
 }

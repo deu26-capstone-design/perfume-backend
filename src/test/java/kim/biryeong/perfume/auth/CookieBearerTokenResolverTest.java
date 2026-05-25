@@ -25,6 +25,21 @@ class CookieBearerTokenResolverTest {
   }
 
   @Test
+  void ignoresCookieTokenOnLayeringRecommendationPublicPostWithContextPath() {
+    CookieBearerTokenResolver resolver = new CookieBearerTokenResolver("PERFUME_ACCESS_TOKEN");
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("POST", "/app/api/layering/recommendations");
+    request.setContextPath("/app");
+    request.setCookies(new Cookie("PERFUME_ACCESS_TOKEN", "stale-token"));
+
+    String token = resolver.resolve(request);
+
+    assertThat(token).isNull();
+    assertThat(request.getAttribute(CookieBearerTokenResolver.TOKEN_FROM_COOKIE_ATTRIBUTE))
+        .isNull();
+  }
+
+  @Test
   void keepsExplicitAuthorizationHeaderOnLayeringRecommendationPublicPost() {
     CookieBearerTokenResolver resolver = new CookieBearerTokenResolver("PERFUME_ACCESS_TOKEN");
     MockHttpServletRequest request =

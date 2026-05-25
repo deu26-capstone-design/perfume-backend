@@ -95,6 +95,8 @@ public class LayeringExplanationAssembler {
     addTranslatedIntersection(result, source.seasonTags(), target.seasonTags());
     addTranslatedIntersection(result, source.occasionTags(), target.occasionTags());
     addTranslated(result, source.seasonTags());
+    addTranslated(result, target.seasonTags());
+    addTranslated(result, source.occasionTags());
     addTranslated(result, target.occasionTags());
     return result.stream().limit(3).toList();
   }

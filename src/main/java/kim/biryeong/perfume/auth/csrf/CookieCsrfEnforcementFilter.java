@@ -35,7 +35,7 @@ public class CookieCsrfEnforcementFilter extends OncePerRequestFilter {
     return Boolean.TRUE.equals(
             request.getAttribute(CookieBearerTokenResolver.TOKEN_FROM_COOKIE_ATTRIBUTE))
         && !SAFE_METHODS.contains(request.getMethod())
-        && !CSRF_EXEMPT_UNSAFE_PATHS.contains(request.getRequestURI());
+        && !CSRF_EXEMPT_UNSAFE_PATHS.contains(applicationPath(request));
   }
 
   private boolean hasValidDoubleSubmitToken(HttpServletRequest request) {
@@ -55,5 +55,14 @@ public class CookieCsrfEnforcementFilter extends OncePerRequestFilter {
       }
     }
     return null;
+  }
+
+  private static String applicationPath(HttpServletRequest request) {
+    String contextPath = request.getContextPath();
+    String requestUri = request.getRequestURI();
+    if (contextPath != null && !contextPath.isBlank() && requestUri.startsWith(contextPath)) {
+      return requestUri.substring(contextPath.length());
+    }
+    return requestUri;
   }
 }

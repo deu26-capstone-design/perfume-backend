@@ -45,6 +45,15 @@ public class CookieBearerTokenResolver implements BearerTokenResolver {
 
   private boolean isCookieOptionalPublicPost(HttpServletRequest request) {
     return "POST".equals(request.getMethod())
-        && COOKIE_OPTIONAL_POST_PATHS.contains(request.getRequestURI());
+        && COOKIE_OPTIONAL_POST_PATHS.contains(applicationPath(request));
+  }
+
+  private static String applicationPath(HttpServletRequest request) {
+    String contextPath = request.getContextPath();
+    String requestUri = request.getRequestURI();
+    if (contextPath != null && !contextPath.isBlank() && requestUri.startsWith(contextPath)) {
+      return requestUri.substring(contextPath.length());
+    }
+    return requestUri;
   }
 }
