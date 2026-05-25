@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import kim.biryeong.perfume.perfume.domain.Perfume;
 import kim.biryeong.perfume.perfume.dto.StatsDto;
 import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
+import kim.biryeong.perfume.preference.service.PreferenceService;
 import kim.biryeong.perfume.review.domain.Review;
 import kim.biryeong.perfume.review.domain.ReviewScent;
 import kim.biryeong.perfume.review.domain.ReviewSeason;
@@ -45,6 +46,7 @@ public class ReviewService {
   private final ReviewRepository reviewRepository;
   private final ReviewSeasonRepository reviewSeasonRepository;
   private final ReviewScentRepository reviewScentRepository;
+  private final PreferenceService preferenceService;
 
   @Transactional
   public ReviewCreateResponse createReview(Long perfumeId, Integer userId, ReviewRequest request) {
@@ -92,6 +94,7 @@ public class ReviewService {
       List<ReviewScent> scents =
           scentEnums.stream().map(scent -> new ReviewScent(null, review, scent)).toList();
       reviewScentRepository.saveAll(scents);
+      preferenceService.applyReviewCreate(userId, scentEnums);
     }
 
     List<Review> reviews = reviewRepository.findByPerfumeId(perfumeId);
@@ -291,12 +294,17 @@ public class ReviewService {
           seasonEnums.stream().map(season -> new ReviewSeason(review, season)).toList());
     }
 
-    reviewScentRepository.deleteAll(reviewScentRepository.findByReviewIds(List.of(reviewId)));
+    List<ReviewScent> existingScents = reviewScentRepository.findByReviewIds(List.of(reviewId));
+    List<ScentName> oldScents = existingScents.stream().map(ReviewScent::getScentName).toList();
+
+    reviewScentRepository.deleteAll(existingScents);
     reviewScentRepository.flush();
     if (!scentEnums.isEmpty()) {
       reviewScentRepository.saveAll(
           scentEnums.stream().map(scent -> new ReviewScent(null, review, scent)).toList());
     }
+
+    preferenceService.applyReviewUpdate(userId, oldScents, scentEnums);
   }
 
   @Transactional
@@ -310,9 +318,35 @@ public class ReviewService {
       throw new ResponseStatusException(HttpStatus.FORBIDDEN, "본인의 리뷰만 삭제할 수 있습니다.");
     }
 
+    List<ScentName> deletedScents =
+        reviewScentRepository.findByReviewIds(List.of(reviewId)).stream()
+            .map(ReviewScent::getScentName)
+            .toList();
+
     reviewSeasonRepository.deleteAll(reviewSeasonRepository.findByReviewIds(List.of(reviewId)));
+    reviewSeasonRepository.flush();
     reviewScentRepository.deleteAll(reviewScentRepository.findByReviewIds(List.of(reviewId)));
+    reviewScentRepository.flush();
     reviewRepository.delete(review);
+
+    if (!deletedScents.isEmpty()) {
+      preferenceService.applyReviewDelete(userId, deletedScents);
+    }
+  }
+
+  /**
+   * 사용자가 작성한 모든 리뷰의 향 계열 목록을 반환한다.
+   *
+   * <p>향 선호도 테스트 완료 시 기존 리뷰 점수를 소급 적용하는 데 사용한다.
+   *
+   * @param userId 조회할 사용자 ID
+   * @return 해당 사용자의 모든 리뷰에서 선택된 향 계열 목록
+   */
+  @Transactional(readOnly = true)
+  public List<ScentName> getExistingReviewScents(Integer userId) {
+    return reviewScentRepository.findAllByReviewUserId(userId).stream()
+        .map(ReviewScent::getScentName)
+        .toList();
   }
 
   private List<Season> toSeasonEnums(List<String> seasonValues) {
