@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import jakarta.servlet.http.Cookie;
 import kim.biryeong.perfume.accord.domain.PerfumeAccord;
 import kim.biryeong.perfume.accord.repository.PerfumeAccordRepository;
+import kim.biryeong.perfume.audit.AuditLogRepository;
 import kim.biryeong.perfume.auth.jwt.JwtService;
 import kim.biryeong.perfume.perfume.domain.Gender;
 import kim.biryeong.perfume.perfume.domain.Perfume;
@@ -19,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -36,11 +38,14 @@ class LayeringRecommendationControllerTest {
 
   @Autowired private JwtService jwtService;
 
+  @Autowired private AuditLogRepository auditLogRepository;
+
   private Perfume citrusWoody;
   private Perfume floralMusky;
 
   @BeforeEach
   void setUp() {
+    auditLogRepository.deleteAll();
     perfumeNoteRepository.deleteAll();
     perfumeAccordRepository.deleteAll();
     perfumeRepository.deleteAll();
@@ -87,6 +92,43 @@ class LayeringRecommendationControllerTest {
                 .content("{\"perfumeIds\":[1,2]}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.recommendation.candidateType").value("PAIR"));
+  }
+
+  @Test
+  void recommendsLayeringEvenWhenStaleAuthenticationCookieExists() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/layering/recommendations")
+                .cookie(new Cookie("PERFUME_ACCESS_TOKEN", "stale-token"))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"perfumeIds\":[1,2]}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.recommendation.candidateType").value("PAIR"));
+  }
+
+  @Test
+  void rejectsInvalidExplicitAuthorizationHeader() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/layering/recommendations")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer bad-token")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"perfumeIds\":[1,2]}"))
+        .andExpect(status().isUnauthorized());
+
+    org.assertj.core.api.Assertions.assertThat(auditLogRepository.count()).isZero();
+  }
+
+  @Test
+  void recommendationDoesNotWriteAuditLog() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/layering/recommendations")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"perfumeIds\":[1,2]}"))
+        .andExpect(status().isOk());
+
+    org.assertj.core.api.Assertions.assertThat(auditLogRepository.count()).isZero();
   }
 
   @Test

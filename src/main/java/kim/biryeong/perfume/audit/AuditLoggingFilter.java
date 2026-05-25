@@ -23,6 +23,7 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AuditLoggingFilter.class);
   private static final Set<String> MUTATING_METHODS = Set.of("POST", "PUT", "PATCH", "DELETE");
+  private static final Set<String> READ_ONLY_POST_PATHS = Set.of("/api/layering/recommendations");
   private static final Pattern REVIEW_CREATE_PATH = Pattern.compile("^/api/perfumes/\\d+/reviews$");
   private static final Pattern WISHLIST_ITEM_PATH = Pattern.compile("^/api/wishlist/\\d+$");
 
@@ -73,6 +74,10 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
 
   private boolean shouldAudit(HttpServletRequest request, AuditOutcome outcome) {
     if (!request.getRequestURI().startsWith("/api/")) {
+      return false;
+    }
+    if ("POST".equals(request.getMethod())
+        && READ_ONLY_POST_PATHS.contains(request.getRequestURI())) {
       return false;
     }
     return MUTATING_METHODS.contains(request.getMethod())

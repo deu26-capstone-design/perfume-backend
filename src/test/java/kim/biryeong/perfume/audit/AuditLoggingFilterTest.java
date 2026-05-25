@@ -30,11 +30,26 @@ class AuditLoggingFilterTest {
     assertThat(auditLogService.failureReason).isEqualTo("UNHANDLED_EXCEPTION");
   }
 
+  @Test
+  void layeringRecommendationPostIsNotAuditedAsMutation() throws Exception {
+    RecordingAuditLogService auditLogService = new RecordingAuditLogService();
+    AuditLoggingFilter filter = new AuditLoggingFilter(auditLogService);
+    MockHttpServletRequest request =
+        new MockHttpServletRequest("POST", "/api/layering/recommendations");
+    MockHttpServletResponse response = new MockHttpServletResponse();
+    FilterChain chain = (servletRequest, servletResponse) -> {};
+
+    filter.doFilter(request, response, chain);
+
+    assertThat(auditLogService.recorded).isFalse();
+  }
+
   private static class RecordingAuditLogService extends AuditLogService {
 
     private AuditOutcome outcome;
     private Integer statusCode;
     private String failureReason;
+    private boolean recorded;
 
     RecordingAuditLogService() {
       super(null, null);
@@ -48,6 +63,7 @@ class AuditLoggingFilterTest {
         Integer statusCode,
         Integer userId,
         String failureReason) {
+      this.recorded = true;
       this.outcome = outcome;
       this.statusCode = statusCode;
       this.failureReason = failureReason;

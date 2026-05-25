@@ -539,8 +539,10 @@ GET /api/perfumes/{id}
 
 ## Layering API
 
-Layering API는 공개 API입니다. JWT 인증과 CSRF 토큰 없이 호출할 수 있습니다. 외부 AI 호출 없이 서버 내부
-어코드 매트릭스, 향수 어코드 비율, 노트 구조, 리소스 CSV 문구만 사용해 deterministic 결과를 반환합니다.
+Layering API는 공개 API입니다. JWT 인증과 CSRF 토큰 없이 호출할 수 있습니다. 브라우저에 만료되었거나 손상된
+`PERFUME_ACCESS_TOKEN` 쿠키가 남아 있어도 이 공개 API에서는 해당 쿠키를 인증 시도로 사용하지 않습니다. 단,
+명시적인 `Authorization: Bearer {token}` 헤더를 보내면 기존 JWT 인증 흐름을 그대로 따릅니다. 외부 AI 호출 없이 서버
+내부 어코드 매트릭스, 향수 어코드 비율, 노트 구조, 리소스 CSV 문구만 사용해 deterministic 결과를 반환합니다.
 
 ### 향수 레이어링 추천
 
