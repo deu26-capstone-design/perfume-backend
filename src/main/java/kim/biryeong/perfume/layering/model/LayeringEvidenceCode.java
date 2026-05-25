@@ -1,0 +1,12 @@
+package kim.biryeong.perfume.layering.model;
+
+public enum LayeringEvidenceCode {
+  HIGH_MATRIX_COMPATIBILITY,
+  LOW_MATRIX_COMPATIBILITY,
+  BASE_ANCHOR_PRESENT,
+  TOP_LIFT_PRESENT,
+  SWEET_OVERLOAD,
+  DARK_OVERLOAD,
+  FRESH_WITHOUT_BASE,
+  COLOR_PAIR_SELECTED
+}
