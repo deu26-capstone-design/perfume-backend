@@ -68,7 +68,8 @@ public class GlobalExceptionHandler {
   @ExceptionHandler(MaxUploadSizeExceededException.class)
   @ResponseStatus(HttpStatus.CONTENT_TOO_LARGE)
   public Map<String, String> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
-    return Map.of("message", "profile image must be 5MB or smaller");
+    return Map.of(
+        "message", e.getMessage() != null ? e.getMessage() : "profile image must be 5MB or smaller");
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)
