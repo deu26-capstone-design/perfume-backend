@@ -8,6 +8,7 @@ import kim.biryeong.perfume.layering.dto.LayeringColorResponse;
 import kim.biryeong.perfume.layering.dto.LayeringRecommendationDto;
 import kim.biryeong.perfume.layering.dto.ScoreBreakdownResponse;
 import kim.biryeong.perfume.layering.model.AccordNarrative;
+import kim.biryeong.perfume.layering.model.LayeringCandidate;
 import kim.biryeong.perfume.layering.model.LayeringColor;
 import kim.biryeong.perfume.layering.model.LayeringDecision;
 import kim.biryeong.perfume.layering.model.LayeringEvidence;
@@ -23,7 +24,8 @@ public class LayeringExplanationAssembler {
   private final AccordNarrativeRepository narrativeRepository;
   private final RuleExplanationRepository ruleExplanationRepository;
 
-  public LayeringRecommendationDto assemble(LayeringScore score, LayeringColor color) {
+  public LayeringRecommendationDto assemble(
+      LayeringCandidate candidate, LayeringScore score, LayeringColor color) {
     AccordNarrative source = narrativeRepository.findByAccord(color.sourceAccord());
     AccordNarrative target = narrativeRepository.findByAccord(color.targetAccord());
     List<LayeringEvidence> evidences = new ArrayList<>(score.evidences());
@@ -32,7 +34,8 @@ public class LayeringExplanationAssembler {
     List<String> reasons = new ArrayList<>();
     List<String> warnings = new ArrayList<>();
     for (LayeringEvidence evidence : evidences) {
-      RuleExplanation explanation = ruleExplanationRepository.findByCode(evidence.code());
+      RuleExplanation explanation =
+          ruleExplanationRepository.findByCode(evidence.code(), seed(candidate, evidence));
       String message = render(explanation.template(), evidence);
       if (explanation.warning()) {
         if (warnings.size() < 2) {
@@ -49,8 +52,8 @@ public class LayeringExplanationAssembler {
         decision == LayeringDecision.RECOMMENDED,
         decision.name(),
         score.finalScore(),
-        title(source, target),
-        summary(source, target),
+        title(candidate, source, target),
+        summary(candidate, source, target),
         new LayeringColorResponse(
             color.name(),
             color.hex(),
@@ -67,27 +70,103 @@ public class LayeringExplanationAssembler {
             score.penaltyScore()));
   }
 
-  private static String render(String template, LayeringEvidence evidence) {
+  private String render(String template, LayeringEvidence evidence) {
     return template
-        .replace("{accordA}", text(evidence.accordA()))
-        .replace("{accordB}", text(evidence.accordB()))
+        .replace("{accordA}", accordText(evidence.accordA()))
+        .replace("{accordB}", accordText(evidence.accordB()))
         .replace("{perfumeName}", text(evidence.perfumeName()))
-        .replace("{accord}", text(evidence.accord()))
+        .replace("{accord}", accordText(evidence.accord()))
         .replace("{colorName}", text(evidence.colorName()));
   }
 
-  private static String title(AccordNarrative source, AccordNarrative target) {
-    return source.titleAdjective()
-        + " "
-        + source.displayNameKo()
-        + "와 "
-        + target.titleAdjective()
-        + " "
-        + target.displayNameKo();
+  private static String seed(LayeringCandidate candidate, LayeringEvidence evidence) {
+    long firstId = Math.min(candidate.first().id(), candidate.second().id());
+    long secondId = Math.max(candidate.first().id(), candidate.second().id());
+    String firstAccord = text(evidence.accordA());
+    String secondAccord = text(evidence.accordB());
+    if (!firstAccord.isBlank()
+        && !secondAccord.isBlank()
+        && firstAccord.compareTo(secondAccord) > 0) {
+      String previousFirstAccord = firstAccord;
+      firstAccord = secondAccord;
+      secondAccord = previousFirstAccord;
+    }
+    return firstId
+        + "|"
+        + secondId
+        + "|"
+        + evidence.code()
+        + "|"
+        + firstAccord
+        + "|"
+        + secondAccord
+        + "|"
+        + text(evidence.perfumeName())
+        + "|"
+        + text(evidence.accord())
+        + "|"
+        + text(evidence.colorName());
   }
 
-  private static String summary(AccordNarrative source, AccordNarrative target) {
-    return source.summaryPhrase() + " " + target.positivePhrase();
+  private static String title(
+      LayeringCandidate candidate, AccordNarrative source, AccordNarrative target) {
+    List<String> variants =
+        List.of(
+            source.titleAdjective()
+                + " "
+                + source.displayNameKo()
+                + " 계열과 "
+                + target.titleAdjective()
+                + " "
+                + target.displayNameKo()
+                + " 계열",
+            source.displayNameKo()
+                + " 계열과 "
+                + target.displayNameKo()
+                + " 계열의 "
+                + source.titleAdjective()
+                + " 무드",
+            source.displayNameKo()
+                + " 계열에 겹친 "
+                + target.titleAdjective()
+                + " "
+                + target.displayNameKo()
+                + " 계열");
+    return variants.get(
+        deterministicIndex(
+            candidate,
+            "title|" + source.accordName() + "|" + target.accordName(),
+            variants.size()));
+  }
+
+  private static String summary(
+      LayeringCandidate candidate, AccordNarrative source, AccordNarrative target) {
+    List<String> variants =
+        List.of(
+            source.summaryPhrase() + " " + target.positivePhrase(),
+            source.displayNameKo()
+                + "의 "
+                + source.texture()
+                + "에 "
+                + target.displayNameKo()
+                + "의 "
+                + target.texture()
+                + " 질감이 더해져 입체적인 흐름을 만듭니다.",
+            source.displayNameKo()
+                + "의 인상과 "
+                + target.displayNameKo()
+                + "의 질감이 겹쳐 조합의 분위기를 또렷하게 만듭니다.");
+    return variants.get(
+        deterministicIndex(
+            candidate,
+            "summary|" + source.accordName() + "|" + target.accordName(),
+            variants.size()));
+  }
+
+  private static int deterministicIndex(LayeringCandidate candidate, String seed, int size) {
+    long firstId = Math.min(candidate.first().id(), candidate.second().id());
+    long secondId = Math.max(candidate.first().id(), candidate.second().id());
+    return Math.floorMod((firstId + "|" + secondId + "|" + seed).hashCode(), size);
   }
 
   private static List<String> bestFor(AccordNarrative source, AccordNarrative target) {
@@ -136,5 +215,9 @@ public class LayeringExplanationAssembler {
 
   private static String text(String value) {
     return value == null ? "" : value;
+  }
+
+  private String accordText(String value) {
+    return value == null ? "" : narrativeRepository.findByAccord(value).displayNameKo();
   }
 }

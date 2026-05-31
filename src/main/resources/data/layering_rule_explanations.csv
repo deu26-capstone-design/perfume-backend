@@ -1,9 +1,25 @@
-evidence_code,severity,message_template
-HIGH_MATRIX_COMPATIBILITY,reason,{accordA}와 {accordB}의 궁합 점수가 높아 두 향의 연결이 자연스럽습니다.
-LOW_MATRIX_COMPATIBILITY,warning,{accordA}와 {accordB}의 연결 점수가 낮아 조합이 선명하게 충돌할 수 있습니다.
-BASE_ANCHOR_PRESENT,reason,{perfumeName}의 {accord} 계열이 조합에 안정적인 깊이감을 더합니다.
-TOP_LIFT_PRESENT,reason,{perfumeName}의 {accord} 계열이 조합의 인상을 밝고 산뜻하게 만듭니다.
-SWEET_OVERLOAD,warning,단 향이 겹쳐 답답하게 느껴질 수 있어 산뜻한 조합을 원한다면 맞지 않을 수 있습니다.
-DARK_OVERLOAD,warning,묵직한 향이 겹쳐 어둡고 무겁게 느껴질 수 있습니다.
-FRESH_WITHOUT_BASE,warning,상쾌한 향이 중심인 조합이라 지속감은 가볍게 느껴질 수 있습니다.
-COLOR_PAIR_SELECTED,reason,{accordA}와 {accordB}의 무드를 {colorName} 컬러로 표현했습니다.
+evidence_code,severity,variant_key,message_template
+HIGH_MATRIX_COMPATIBILITY,reason,flow,{accordA} 계열과 {accordB} 계열이 자연스럽게 이어져 조합의 중심이 부드럽게 잡힙니다.
+HIGH_MATRIX_COMPATIBILITY,reason,texture,{accordA}의 표정에 {accordB}의 질감이 겹쳐 향의 흐름이 안정적으로 전개됩니다.
+HIGH_MATRIX_COMPATIBILITY,reason,balance,{accordA} 계열과 {accordB} 계열이 서로의 장점을 눌러버리지 않아 착용감이 조화롭게 느껴집니다.
+LOW_MATRIX_COMPATIBILITY,warning,separation,{accordA} 계열과 {accordB} 계열의 방향이 멀어 향의 흐름이 분리되어 느껴질 수 있습니다.
+LOW_MATRIX_COMPATIBILITY,warning,contrast,{accordA}의 인상과 {accordB}의 질감이 선명하게 대비되어 취향에 따라 어색하게 느껴질 수 있습니다.
+LOW_MATRIX_COMPATIBILITY,warning,rough_edge,{accordA} 계열과 {accordB} 계열이 매끄럽게 이어지지 않아 조합의 경계가 도드라질 수 있습니다.
+BASE_ANCHOR_PRESENT,reason,drydown,{perfumeName}의 {accord} 계열이 베이스를 받쳐 잔향에 안정적인 깊이를 더합니다.
+BASE_ANCHOR_PRESENT,reason,anchor,{perfumeName}의 {accord} 계열이 향의 골격을 잡아 조합이 쉽게 흩어지지 않게 만듭니다.
+BASE_ANCHOR_PRESENT,reason,depth,{perfumeName}의 {accord} 계열이 뒤쪽에서 무게를 잡아 착용감에 차분한 깊이를 남깁니다.
+TOP_LIFT_PRESENT,reason,opening,{perfumeName}의 {accord} 계열이 첫인상을 밝게 열어 조합에 산뜻한 리프트를 만듭니다.
+TOP_LIFT_PRESENT,reason,sparkle,{perfumeName}의 {accord} 계열이 앞부분을 가볍게 띄워 향의 시작을 더 선명하게 만듭니다.
+TOP_LIFT_PRESENT,reason,air,{perfumeName}의 {accord} 계열이 공기감을 더해 조합이 답답하지 않게 전개됩니다.
+SWEET_OVERLOAD,warning,density,단 향의 밀도가 겹쳐 포근함보다 답답함이 먼저 느껴질 수 있습니다.
+SWEET_OVERLOAD,warning,stickiness,달콤한 질감이 여러 겹으로 쌓여 산뜻한 취향에는 끈적하게 느껴질 수 있습니다.
+SWEET_OVERLOAD,warning,warmth,따뜻한 단맛이 강해져 더운 날이나 가벼운 무드에서는 부담스러울 수 있습니다.
+DARK_OVERLOAD,warning,weight,묵직한 향의 축이 겹쳐 조합이 어둡고 무겁게 남을 수 있습니다.
+DARK_OVERLOAD,warning,shadow,깊은 계열의 인상이 함께 커져 밝은 분위기보다 차분한 그림자가 먼저 느껴질 수 있습니다.
+DARK_OVERLOAD,warning,intensity,무게감 있는 잔향이 겹치면 밀도는 좋아지지만 일상적인 착용에는 강하게 느껴질 수 있습니다.
+FRESH_WITHOUT_BASE,warning,longevity,상쾌한 인상이 중심인 조합이라 잔향의 지속감은 가볍게 느껴질 수 있습니다.
+FRESH_WITHOUT_BASE,warning,thinness,맑은 첫인상은 좋지만 받쳐주는 베이스가 약해 시간이 지나면 얇게 흐려질 수 있습니다.
+FRESH_WITHOUT_BASE,warning,evaporation,휘발감 있는 계열이 앞서면서 조합의 마무리가 빠르게 정리될 수 있습니다.
+COLOR_PAIR_SELECTED,reason,mood,{accordA} 계열과 {accordB} 계열의 분위기를 {colorName} 컬러로 묶어 조합의 무드를 표현했습니다.
+COLOR_PAIR_SELECTED,reason,visual,{colorName} 컬러는 {accordA}의 인상과 {accordB}의 질감이 만나는 지점을 시각화합니다.
+COLOR_PAIR_SELECTED,reason,palette,{accordA} 계열과 {accordB} 계열이 만드는 후각적 온도를 {colorName} 컬러로 보여줍니다.
