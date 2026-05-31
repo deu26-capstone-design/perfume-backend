@@ -48,7 +48,7 @@ public class LayeringRecommendationService {
     LayeringColor color = colorPalette.findByPair(score.dominantPair());
     return new LayeringRecommendationResponse(
         profiles.stream().map(LayeringRecommendationService::toResponse).toList(),
-        explanationAssembler.assemble(score, color));
+        explanationAssembler.assemble(candidate, score, color));
   }
 
   private static void validatePerfumeIds(List<Long> perfumeIds) {
