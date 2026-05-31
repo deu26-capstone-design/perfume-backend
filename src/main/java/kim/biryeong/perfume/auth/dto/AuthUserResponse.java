@@ -16,6 +16,7 @@ import kim.biryeong.perfume.user.domain.User;
  * @param gender 현재 API 계약의 한 글자 성별 코드
  * @param birthDate 사용자 생년월일
  * @param phoneNumber 사용자 전화번호
+ * @param profileImageUrl 공개 프로필 이미지 URL이며 아직 업로드하지 않았으면 {@code null}
  * @param oauthProvider 연결된 OAuth 제공자이며 로컬 계정이면 {@code null}
  * @param profileCompleted 모든 필수 프로필 필드가 존재하는지 여부
  */
@@ -27,6 +28,7 @@ public record AuthUserResponse(
     String gender,
     LocalDate birthDate,
     String phoneNumber,
+    String profileImageUrl,
     OAuthProvider oauthProvider,
     boolean profileCompleted) {
 
@@ -39,6 +41,7 @@ public record AuthUserResponse(
         user.getGender(),
         user.getBirthDate(),
         user.getPhoneNumber(),
+        user.getProfileImageUrl(),
         user.getOauthProvider(),
         user.isProfileCompleted());
   }

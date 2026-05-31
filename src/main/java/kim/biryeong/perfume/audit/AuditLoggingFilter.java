@@ -110,6 +110,9 @@ public class AuditLoggingFilter extends OncePerRequestFilter {
     if ("PATCH".equals(method) && "/api/auth/me/profile".equals(path)) {
       return AuditEventType.AUTH_PROFILE_UPDATE;
     }
+    if ("POST".equals(method) && "/api/auth/me/profile-image".equals(path)) {
+      return AuditEventType.AUTH_PROFILE_IMAGE_UPDATE;
+    }
     if ("GET".equals(method) && ("/api/auth/me".equals(path) || "/api/auth/csrf".equals(path))) {
       return AuditEventType.AUTH_CHECK;
     }
