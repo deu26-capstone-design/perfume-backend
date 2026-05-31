@@ -13,6 +13,7 @@ import kim.biryeong.perfume.auth.dto.CsrfTokenResponse;
 import kim.biryeong.perfume.auth.dto.LoginRequest;
 import kim.biryeong.perfume.auth.dto.SignupRequest;
 import kim.biryeong.perfume.auth.jwt.JwtService;
+import kim.biryeong.perfume.auth.profileimage.ProfileImageService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -21,7 +22,9 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 /**
@@ -35,12 +38,17 @@ import org.springframework.web.server.ResponseStatusException;
 public class AuthController {
 
   private final AuthService authService;
+  private final ProfileImageService profileImageService;
   private final JwtService jwtService;
   private final AuthCookieFactory authCookieFactory;
 
   public AuthController(
-      AuthService authService, JwtService jwtService, AuthCookieFactory authCookieFactory) {
+      AuthService authService,
+      ProfileImageService profileImageService,
+      JwtService jwtService,
+      AuthCookieFactory authCookieFactory) {
     this.authService = authService;
+    this.profileImageService = profileImageService;
     this.jwtService = jwtService;
     this.authCookieFactory = authCookieFactory;
   }
@@ -125,6 +133,25 @@ public class AuthController {
     Integer userId = AuthenticatedUserIds.currentUserId(authentication);
     AuditLogRequestAttributes.mark(servletRequest, AuditEventType.AUTH_PROFILE_UPDATE, userId);
     return AuthUserResponse.from(authService.completeProfile(userId, request));
+  }
+
+  /**
+   * 현재 인증 사용자의 프로필 이미지를 업로드하고 공개 이미지 URL을 사용자 프로필에 반영합니다.
+   *
+   * @param servletRequest 감사 로그 속성을 남길 서블릿 요청
+   * @param authentication JWT subject를 포함한 Spring Security 인증 객체
+   * @param image {@code multipart/form-data}의 {@code image} 필드로 전달된 프로필 이미지
+   * @return 갱신된 현재 사용자 프로필
+   */
+  @PostMapping(path = "/me/profile-image", consumes = "multipart/form-data")
+  public AuthUserResponse updateProfileImage(
+      HttpServletRequest servletRequest,
+      Authentication authentication,
+      @RequestParam("image") MultipartFile image) {
+    Integer userId = AuthenticatedUserIds.currentUserId(authentication);
+    AuditLogRequestAttributes.mark(
+        servletRequest, AuditEventType.AUTH_PROFILE_IMAGE_UPDATE, userId);
+    return AuthUserResponse.from(profileImageService.updateProfileImage(userId, image));
   }
 
   /**

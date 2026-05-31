@@ -93,7 +93,20 @@ public class AuthService {
     return user;
   }
 
+  @Transactional
+  public ProfileImageReplacement replaceProfileImage(Integer userId, String profileImageUrl) {
+    User user =
+        userRepository
+            .findByIdForUpdate(userId)
+            .orElseThrow(() -> new AuthUnauthorizedException("authentication is required"));
+    String previousProfileImageUrl = user.getProfileImageUrl();
+    user.setProfileImageUrl(profileImageUrl);
+    return new ProfileImageReplacement(user, previousProfileImageUrl);
+  }
+
   private InvalidCredentialsException invalidCredentials() {
     return new InvalidCredentialsException();
   }
+
+  public record ProfileImageReplacement(User user, String previousProfileImageUrl) {}
 }

@@ -38,11 +38,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL!;
 let csrfToken: string | null = null;
 
 async function apiFetch(path: string, init: RequestInit = {}) {
+  const isFormData = init.body instanceof FormData;
+
   return fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include",
     headers: {
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
+      ...(init.body && !isFormData ? { "Content-Type": "application/json" } : {}),
       ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
       ...init.headers,
     },
@@ -179,6 +181,7 @@ export async function getCurrentUser() {
   "gender": null,
   "birthDate": null,
   "phoneNumber": null,
+  "profileImageUrl": null,
   "oauthProvider": "NAVER",
   "profileCompleted": false
 }
@@ -212,6 +215,37 @@ export async function completeProfile(profile: {
 
   if (!response.ok) {
     throw new Error("profile update failed");
+  }
+
+  return response.json();
+}
+```
+
+## 프로필 사진 변경
+
+`FormData` 요청은 브라우저가 `multipart/form-data` boundary를 자동으로 붙여야 하므로 `Content-Type: application/json`을 직접 설정하면 안 됩니다. 위 `apiFetch` 헬퍼는 `FormData` 본문일 때 `Content-Type`을 생략합니다.
+
+```ts
+export async function updateProfileImage(image: File) {
+  if (!csrfToken) {
+    await refreshCsrfToken();
+  }
+
+  const formData = new FormData();
+  formData.append("image", image);
+
+  const response = await apiFetch("/api/auth/me/profile-image", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (response.status === 403) {
+    await refreshCsrfToken();
+    throw new Error("csrf token refreshed; retry the request");
+  }
+
+  if (!response.ok) {
+    throw new Error("profile image update failed");
   }
 
   return response.json();
@@ -301,6 +335,12 @@ APP_AUTH_COOKIE_SAME_SITE=None
 APP_CORS_ALLOWED_ORIGINS=https://thescentlab.vercel.app
 APP_OAUTH2_SUCCESS_REDIRECT_URI=https://thescentlab.vercel.app/oauth2/success
 APP_OAUTH2_FAILURE_REDIRECT_URI=https://thescentlab.vercel.app/oauth2/failure
+APP_R2_ACCOUNT_ID=...
+APP_R2_ACCESS_KEY_ID=...
+APP_R2_SECRET_ACCESS_KEY=...
+APP_R2_BUCKET=...
+APP_R2_PUBLIC_BASE_URL=https://cdn.example.com
+APP_R2_KEY_PREFIX=profile-images
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
 NAVER_CLIENT_ID=...
