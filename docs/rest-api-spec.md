@@ -28,7 +28,7 @@
 ## 인증
 
 - 공개 조회 API는 인증 없이 호출할 수 있습니다.
-- `/api/auth/me`, `/api/auth/me/profile`, 로그인 사용자 리뷰 조회, 리뷰 작성, 위시리스트 API는 JWT 인증이 필요합니다.
+- `/api/auth/me`, `/api/auth/me/profile`, `/api/auth/me/profile-image`, 로그인 사용자 리뷰 조회, 리뷰 작성, 위시리스트 API는 JWT 인증이 필요합니다.
 - `/api/auth/logout`은 만료되었거나 손상된 HttpOnly 인증 쿠키도 브라우저에서 제거할 수 있도록 인증 실패 시에도 쿠키 만료 응답을 반환합니다. 유효한 JWT 쿠키 기반 요청은 다른 상태 변경 API와 같이 CSRF 토큰이 필요합니다.
 - JWT는 `Authorization: Bearer {token}` 헤더 또는 `PERFUME_ACCESS_TOKEN` HttpOnly 쿠키로 전달합니다.
 - 회원가입, 로그인, OAuth 로그인 성공 응답은 `PERFUME_ACCESS_TOKEN`과 함께 브라우저에서 읽을 수 있는 `XSRF-TOKEN` 쿠키를 발급합니다.
@@ -131,6 +131,7 @@ Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; Secure; SameSite=None
   "gender": "F",
   "birthDate": "1999-05-01",
   "phoneNumber": "01012345678",
+  "profileImageUrl": null,
   "oauthProvider": null,
   "profileCompleted": true
 }
@@ -187,6 +188,7 @@ Set-Cookie: XSRF-TOKEN={csrfToken}; Path=/; Secure; SameSite=None
   "gender": "F",
   "birthDate": "1999-05-01",
   "phoneNumber": "01012345678",
+  "profileImageUrl": null,
   "oauthProvider": null,
   "profileCompleted": true
 }
@@ -266,6 +268,7 @@ GET /api/auth/me
   "gender": "F",
   "birthDate": "1999-05-01",
   "phoneNumber": "01012345678",
+  "profileImageUrl": "https://cdn.example.com/profile-images/1/profile.jpg",
   "oauthProvider": null,
   "profileCompleted": true
 }
@@ -276,6 +279,48 @@ GET /api/auth/me
 | HTTP status | 조건 | 대표 메시지 |
 | --- | --- | --- |
 | `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+
+### 프로필 이미지 변경
+
+```http
+POST /api/auth/me/profile-image
+Content-Type: multipart/form-data
+```
+
+현재 인증 사용자의 프로필 이미지를 Cloudflare R2에 업로드하고 `users.profileImageUrl`에 공개 CDN URL을 저장합니다. JWT 쿠키 인증 요청은 다른 상태 변경 API와 같이 `X-XSRF-TOKEN` 헤더가 필요합니다. Bearer 인증 요청은 CSRF 토큰 없이 호출할 수 있습니다.
+
+#### Request form-data
+
+| 필드 | 타입 | 필수 | 검증 | 설명 |
+| --- | --- | --- | --- | --- |
+| `image` | file | yes | JPEG, PNG, WEBP, 최대 5MB | 새 프로필 이미지 |
+
+#### Response `200 OK`
+
+```json
+{
+  "userId": 1,
+  "email": "user@example.com",
+  "name": "김향수",
+  "nickname": "perfume_user",
+  "gender": "F",
+  "birthDate": "1999-05-01",
+  "phoneNumber": "01012345678",
+  "profileImageUrl": "https://cdn.example.com/profile-images/1/profile.jpg",
+  "oauthProvider": null,
+  "profileCompleted": true
+}
+```
+
+#### Error cases
+
+| HTTP status | 조건 | 대표 메시지 |
+| --- | --- | --- |
+| `400 Bad Request` | 파일이 비었거나 이미지 형식/내용이 올바르지 않음 | `profile image must be JPEG, PNG, or WEBP` |
+| `401 Unauthorized` | 유효한 JWT가 없거나 JWT subject가 정수 사용자 ID가 아님 | 인증 실패 응답 |
+| `403 Forbidden` | JWT 쿠키 기반 요청에서 CSRF 토큰이 없거나 일치하지 않음 | CSRF 실패 응답 |
+| `413 Payload Too Large` | 파일이 5MB를 초과함 | `profile image must be 5MB or smaller` |
+| `503 Service Unavailable` | R2 설정이 없거나 업로드가 실패함 | `profile image upload failed` |
 
 ### 로그아웃
 

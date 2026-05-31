@@ -5,6 +5,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,6 +17,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 import kim.biryeong.perfume.accord.domain.Accord;
 import kim.biryeong.perfume.accord.repository.AccordNoteRepository;
 import kim.biryeong.perfume.accord.repository.AccordRepository;
@@ -24,6 +27,9 @@ import kim.biryeong.perfume.audit.AuditLog;
 import kim.biryeong.perfume.audit.AuditLogRepository;
 import kim.biryeong.perfume.audit.AuditOutcome;
 import kim.biryeong.perfume.auth.jwt.JwtService;
+import kim.biryeong.perfume.auth.profileimage.ProfileImageFileValidator;
+import kim.biryeong.perfume.auth.profileimage.ProfileImageStorage;
+import kim.biryeong.perfume.auth.profileimage.StoredProfileImage;
 import kim.biryeong.perfume.perfume.domain.Gender;
 import kim.biryeong.perfume.perfume.domain.Perfume;
 import kim.biryeong.perfume.perfume.repository.PerfumeRepository;
@@ -42,9 +48,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
@@ -52,6 +62,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.util.unit.DataSize;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -81,6 +92,8 @@ class AuthControllerSecurityTest {
 
   @Autowired private JwtEncoder jwtEncoder;
 
+  @Autowired private TestProfileImageStorage profileImageStorage;
+
   private User user;
 
   @BeforeEach
@@ -94,6 +107,7 @@ class AuthControllerSecurityTest {
     accordNoteRepository.deleteAll();
     accordRepository.deleteAll();
     userRepository.deleteAll();
+    profileImageStorage.reset();
     user = userRepository.save(completedUser());
   }
 
@@ -670,6 +684,108 @@ class AuthControllerSecurityTest {
   }
 
   @Test
+  void profileImageUploadRejectsMissingAuthentication() throws Exception {
+    mockMvc
+        .perform(multipart("/api/auth/me/profile-image").file(jpegProfileImage()))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void profileImageUploadRequiresCsrfTokenForCookieAuthentication() throws Exception {
+    mockMvc
+        .perform(
+            multipart("/api/auth/me/profile-image").file(jpegProfileImage()).cookie(authCookie()))
+        .andExpect(status().isForbidden());
+
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_PROFILE_IMAGE_UPDATE);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.FAILURE);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+    assertThat(auditLog.getFailureReason()).isEqualTo("HTTP_403");
+  }
+
+  @Test
+  void profileImageUploadUpdatesCurrentUserWithCsrfToken() throws Exception {
+    mockMvc
+        .perform(
+            multipart("/api/auth/me/profile-image")
+                .file(jpegProfileImage())
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.profileImageUrl").value(profileImageUrl()));
+
+    User updatedUser = userRepository.findById(user.getUserId()).orElseThrow();
+    assertThat(updatedUser.getProfileImageUrl()).isEqualTo(profileImageUrl());
+    AuditLog auditLog = onlyAuditLog();
+    assertThat(auditLog.getEventType()).isEqualTo(AuditEventType.AUTH_PROFILE_IMAGE_UPDATE);
+    assertThat(auditLog.getOutcome()).isEqualTo(AuditOutcome.SUCCESS);
+    assertThat(auditLog.getUserId()).isEqualTo(user.getUserId());
+  }
+
+  @Test
+  void profileImageUploadAllowsBearerAuthorizationWithoutCsrfToken() throws Exception {
+    mockMvc
+        .perform(
+            multipart("/api/auth/me/profile-image")
+                .file(jpegProfileImage())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + jwtService.issueAccessToken(user)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.profileImageUrl").value(profileImageUrl()));
+  }
+
+  @Test
+  void profileImageUploadRejectsEmptyFile() throws Exception {
+    mockMvc
+        .perform(
+            multipart("/api/auth/me/profile-image")
+                .file(new MockMultipartFile("image", "empty.jpg", "image/jpeg", new byte[0]))
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void profileImageUploadRejectsUnsupportedContentType() throws Exception {
+    mockMvc
+        .perform(
+            multipart("/api/auth/me/profile-image")
+                .file(new MockMultipartFile("image", "profile.gif", "image/gif", jpegBytes()))
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void profileImageUploadRejectsMismatchedContent() throws Exception {
+    mockMvc
+        .perform(
+            multipart("/api/auth/me/profile-image")
+                .file(
+                    new MockMultipartFile(
+                        "image", "profile.jpg", "image/jpeg", new byte[] {1, 2, 3}))
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token"))
+        .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void profileImageUploadRejectsOversizedFile() throws Exception {
+    byte[] oversized = new byte[5 * 1024 * 1024 + 1];
+    oversized[0] = (byte) 0xFF;
+    oversized[1] = (byte) 0xD8;
+    oversized[2] = (byte) 0xFF;
+
+    mockMvc
+        .perform(
+            multipart("/api/auth/me/profile-image")
+                .file(new MockMultipartFile("image", "profile.jpg", "image/jpeg", oversized))
+                .cookie(authCookie(), new Cookie("XSRF-TOKEN", "csrf-token"))
+                .header("X-XSRF-TOKEN", "csrf-token"))
+        .andExpect(status().isContentTooLarge());
+  }
+
+  @Test
   void logoutExpiresAuthCookie() throws Exception {
     mockMvc
         .perform(
@@ -757,6 +873,18 @@ class AuthControllerSecurityTest {
     return new Cookie("PERFUME_ACCESS_TOKEN", token);
   }
 
+  private MockMultipartFile jpegProfileImage() {
+    return new MockMultipartFile("image", "profile.jpg", "image/jpeg", jpegBytes());
+  }
+
+  private byte[] jpegBytes() {
+    return new byte[] {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, 0x00};
+  }
+
+  private String profileImageUrl() {
+    return TestProfileImageStorage.profileImageUrl(user.getUserId());
+  }
+
   private User completedUser(String email, String nickname) {
     User completedUser = completedUser();
     completedUser.setEmail(email);
@@ -793,5 +921,46 @@ class AuthControllerSecurityTest {
   private AuditLog onlyAuditLog() {
     assertThat(auditLogRepository.count()).isEqualTo(1L);
     return auditLogRepository.findAll().getFirst();
+  }
+
+  @TestConfiguration
+  static class ProfileImageTestConfig {
+
+    @Bean
+    @Primary
+    TestProfileImageStorage testProfileImageStorage() {
+      return new TestProfileImageStorage();
+    }
+  }
+
+  static class TestProfileImageStorage implements ProfileImageStorage {
+
+    private final ProfileImageFileValidator validator =
+        new ProfileImageFileValidator(DataSize.ofMegabytes(5));
+
+    private final List<String> deletedUrls = new ArrayList<>();
+
+    @Override
+    public StoredProfileImage upload(
+        Integer userId, org.springframework.web.multipart.MultipartFile image) {
+      validator.validate(image);
+      return new StoredProfileImage(
+          "profile-images/" + userId + "/test-profile.jpg", profileImageUrl(userId));
+    }
+
+    @Override
+    public void deleteIfManaged(String publicUrl) {
+      if (publicUrl != null) {
+        deletedUrls.add(publicUrl);
+      }
+    }
+
+    void reset() {
+      deletedUrls.clear();
+    }
+
+    static String profileImageUrl(Integer userId) {
+      return "https://cdn.example.com/profile-images/" + userId + "/test-profile.jpg";
+    }
   }
 }

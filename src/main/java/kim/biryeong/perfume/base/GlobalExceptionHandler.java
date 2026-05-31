@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestControllerAdvice
@@ -62,6 +63,12 @@ public class GlobalExceptionHandler {
   public Map<String, String> handleMethodArgumentTypeMismatch(
       MethodArgumentTypeMismatchException e) {
     return Map.of("message", e.getName() + " 요청 파라미터 형식이 올바르지 않습니다.");
+  }
+
+  @ExceptionHandler(MaxUploadSizeExceededException.class)
+  @ResponseStatus(HttpStatus.CONTENT_TOO_LARGE)
+  public Map<String, String> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException e) {
+    return Map.of("message", "profile image must be 5MB or smaller");
   }
 
   @ExceptionHandler(DataIntegrityViolationException.class)
