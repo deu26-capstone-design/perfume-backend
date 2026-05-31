@@ -678,7 +678,7 @@ class AuthControllerSecurityTest {
         .andExpect(jsonPath("$.nickname").value("updated"))
         .andExpect(jsonPath("$.gender").value("F"))
         .andExpect(jsonPath("$.birthDate").value("2000-01-01"))
-        .andExpect(jsonPath("$.phoneNumber").value("010-1234-5678"))
+        .andExpect(jsonPath("$.phoneNumber").value("01012345678"))
         .andExpect(jsonPath("$.profileCompleted").value(true));
   }
 
